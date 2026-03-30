@@ -2873,62 +2873,77 @@ function DrawScreen({bracket, playerName, playerNat, tourName, tourType, surface
 
       {/* Tabellone scorrevole — area flex che cresce */}
       <div style={{flex:1,overflowY:"auto",padding:"0 18px 8px"}}>
-        <div style={{display:"flex",flexDirection:"column",gap:2}}>
-          {sectionPlayers.map((p,i)=>{
-            const isVisible=i<revealed;
-            const isPlayerSlot=i===playerLocalIdx;
-            const isOppSlot=oppT1&&p&&p.name===oppT1.name;
-            const isSeededP=p&&seededNames.has(p.name);
-            const seedPos=isSeededP?sortedByRank.findIndex(s=>s.name===p?.name)+1:null;
-            const isMatchStart=i%2===0;
-            return(
-              <React.Fragment key={i}>
-                {isMatchStart&&i>0&&<div style={{height:4}}/>}
-                <div style={{
-                  display:"flex",alignItems:"center",gap:8,
-                  padding:"8px 10px",borderRadius:8,
-                  background:isPlayerSlot
-                    ?"rgba(59,130,246,0.18)"
-                    :isOppSlot
-                      ?"rgba(239,68,68,0.12)"
-                      :"rgba(255,255,255,0.03)",
-                  border:`1.5px solid ${isPlayerSlot?"#3b82f688":isOppSlot?"#ef444455":"transparent"}`,
-                  opacity:isVisible?1:0,
-                  transform:isVisible?"translateX(0)":"translateX(-14px)",
-                  transition:"opacity 0.3s ease, transform 0.3s ease",
-                  minHeight:36,
-                }}>
+        <div style={{display:"flex",flexDirection:"column",gap:0}}>
+          {Array.from({length:Math.ceil(sectionPlayers.length/2)},(_,pi)=>{
+            const topP=sectionPlayers[pi*2];
+            const botP=sectionPlayers[pi*2+1];
+            const topIdx=pi*2;
+            const botIdx=pi*2+1;
+            const topIsPlayer=topIdx===playerLocalIdx;
+            const botIsPlayer=botIdx===playerLocalIdx;
+            const topIsOpp=oppT1&&topP&&topP.name===oppT1.name;
+            const botIsOpp=oppT1&&botP&&botP.name===oppT1.name;
+            const pairHasPlayer=topIsPlayer||botIsPlayer;
+            const pairHasOpp=topIsOpp||botIsOpp;
+            const cardVisible=botIdx<revealed;
+            const cardBg=pairHasPlayer?"rgba(59,130,246,0.13)":pairHasOpp?"rgba(239,68,68,0.09)":"rgba(255,255,255,0.025)";
+            const cardBorder=pairHasPlayer?"#3b82f688":pairHasOpp?"#ef444455":"#1e293b55";
+            const vsDivColor=pairHasPlayer?"#3b82f622":pairHasOpp?"#ef444422":"#1e293b";
+            const renderSlot=(p,slotIdx,isPlayer,isOpp)=>{
+              const isSeededP=p&&seededNames.has(p.name);
+              const seedPos=isSeededP?sortedByRank.findIndex(s=>s.name===p?.name)+1:null;
+              return(
+                <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",minHeight:36}}>
                   <span style={{fontSize:10,color:"#334155",fontWeight:700,minWidth:22,textAlign:"right",fontFamily:"'Rajdhani',sans-serif"}}>
-                    {isVisible?(sectionStart+i+1):""}
+                    {sectionStart+slotIdx+1}
                   </span>
-                  {isVisible&&isSeededP&&seedPos<=seedCount&&(
+                  {isSeededP&&seedPos<=seedCount&&(
                     <span style={{fontSize:9,fontWeight:900,color:tierColor,background:`${tierColor}22`,
                       borderRadius:4,padding:"1px 4px",flexShrink:0,letterSpacing:0.5}}>
                       [{seedPos}]
                     </span>
                   )}
-                  <span style={{flex:1,fontSize:13,fontWeight:isPlayerSlot?900:isSeededP?700:500,
-                    color:isPlayerSlot?"#93c5fd":isOppSlot?"#fca5a5":"#e2e8f0",
+                  <span style={{flex:1,fontSize:13,fontWeight:isPlayer?900:isSeededP?700:500,
+                    color:isPlayer?"#93c5fd":isOpp?"#fca5a5":"#e2e8f0",
                     overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                    {isVisible&&p?(
+                    {p?(
                       <>
-                        {(isPlayerSlot?playerNat:p.nat)&&<span style={{marginRight:4}}>{isPlayerSlot?playerNat:getNatFlag(p.nat)}</span>}
+                        {(isPlayer?playerNat:p.nat)&&<span style={{marginRight:4}}>{isPlayer?playerNat:getNatFlag(p.nat)}</span>}
                         {p.name}
-                        {isPlayerSlot&&<span style={{fontSize:10,color:"#60a5fa",marginLeft:6}}>← TU</span>}
+                        {isPlayer&&<span style={{fontSize:10,color:"#60a5fa",marginLeft:6}}>← TU</span>}
                       </>
                     ):""}
                   </span>
-                  {isVisible&&p?.rank&&(
-                    <span style={{fontSize:13,color:isPlayerSlot?"#93c5fd":isSeededP?"#c4b5fd":"#94a3b8",
+                  {p?.rank&&(
+                    <span style={{fontSize:13,color:isPlayer?"#93c5fd":isSeededP?"#c4b5fd":"#94a3b8",
                       fontFamily:"'Rajdhani',sans-serif",fontWeight:800,flexShrink:0}}>
                       #{p.rank}
                     </span>
                   )}
-                  {isVisible&&i%2===1&&(
-                    <span style={{fontSize:9,color:"#1e3a5f",fontWeight:800,marginLeft:2}}>VS</span>
-                  )}
                 </div>
-              </React.Fragment>
+              );
+            };
+            return(
+              <div key={pi} style={{
+                borderRadius:10,
+                border:`1.5px solid ${cardBorder}`,
+                background:cardBg,
+                overflow:"hidden",
+                marginBottom:6,
+                opacity:cardVisible?1:0,
+                transform:cardVisible?"translateX(0)":"translateX(-14px)",
+                transition:"opacity 0.3s ease, transform 0.3s ease",
+              }}>
+                {renderSlot(topP,topIdx,topIsPlayer,topIsOpp)}
+                {/* VS divider */}
+                <div style={{display:"flex",alignItems:"center",padding:"0 10px"}}>
+                  <div style={{flex:1,height:1,background:vsDivColor}}/>
+                  <span style={{fontSize:9,fontWeight:900,color:"#1e3a5f",padding:"0 8px",
+                    background:"#070f1d",letterSpacing:1}}>VS</span>
+                  <div style={{flex:1,height:1,background:vsDivColor}}/>
+                </div>
+                {renderSlot(botP,botIdx,botIsPlayer,botIsOpp)}
+              </div>
             );
           })}
         </div>
@@ -3068,7 +3083,7 @@ function BracketUpdateScreen({bracket, playerName, completedRound, totalRounds, 
         <div style={{fontSize:11,fontWeight:800,color:"#334155",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>
           Risultati {curRoundLabel}
         </div>
-        <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:16,
+        <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:16,
           opacity:visible?1:0,transform:visible?"translateY(0)":"translateY(8px)",transition:"all 0.35s ease"}}>
           {roundMatches.map((m,i)=>{
             const isPlayerMatch2=m.p1===playerName||m.p2===playerName;
@@ -3079,41 +3094,55 @@ function BracketUpdateScreen({bracket, playerName, completedRound, totalRounds, 
               <div key={i} style={{
                 background:isPlayerMatch2?"rgba(59,130,246,0.08)":"rgba(255,255,255,0.02)",
                 border:`1px solid ${isPlayerMatch2?"#3b82f633":"#1e293b"}`,
-                borderRadius:8,padding:"8px 10px",
+                borderRadius:10,overflow:"hidden",
               }}>
-                <div style={{display:"flex",alignItems:"center",gap:6}}>
-                  {/* P1 */}
-                  <span style={{flex:1,fontSize:12,fontWeight:m.p1===playerName?800:500,
-                    color:p1won?"#e2e8f0":"#475569",
+                {/* Riga P1 */}
+                <div style={{
+                  display:"flex",alignItems:"center",gap:8,
+                  padding:"9px 12px 7px",
+                  borderLeft:`3px solid ${p1won?winCol:winner?loseCol:"transparent"}`,
+                  background:p1won?"rgba(16,185,129,0.06)":"transparent",
+                }}>
+                  <span style={{flex:1,fontSize:13,fontWeight:m.p1===playerName?800:500,
+                    color:p1won?"#e2e8f0":winner?"#475569":"#94a3b8",
                     textDecoration:!p1won&&winner?"line-through":"none",
                     overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                     {getNatFlag(m.p1obj?.nat)&&<span style={{marginRight:3}}>{getNatFlag(m.p1obj?.nat)}</span>}
                     {m.p1}
                     {m.p1===playerName&&<span style={{fontSize:10,color:"#60a5fa",marginLeft:4}}>👤</span>}
                   </span>
-                  <span style={{fontSize:10,fontFamily:"'Rajdhani',sans-serif",fontWeight:700,
-                    color:p1won?winCol:"#334155",minWidth:14,textAlign:"center"}}>
-                    {p1won&&winner?"✓":winner?"✗":""}
-                  </span>
-                  <span style={{fontSize:10,color:"#1e3a5f",fontWeight:800,padding:"0 4px"}}>VS</span>
-                  <span style={{fontSize:10,fontFamily:"'Rajdhani',sans-serif",fontWeight:700,
-                    color:p2won?winCol:"#334155",minWidth:14,textAlign:"center"}}>
-                    {p2won&&winner?"✓":winner?"✗":""}
-                  </span>
-                  {/* P2 */}
-                  <span style={{flex:1,fontSize:12,fontWeight:m.p2===playerName?800:500,
-                    color:p2won?"#e2e8f0":"#475569",
-                    textDecoration:!p2won&&winner?"line-through":"none",
-                    textAlign:"right",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                    {m.p2}
-                    {m.p2===playerName&&<span style={{fontSize:10,color:"#60a5fa",marginLeft:4}}>👤</span>}
-                    {m.p2obj?.nat&&<span style={{marginLeft:3}}>{getNatFlag(m.p2obj?.nat)}</span>}
+                  <span style={{fontSize:11,color:"#475569",fontFamily:"'Rajdhani',sans-serif",flexShrink:0}}>#{m.p1r}</span>
+                  <span style={{fontSize:13,fontWeight:800,minWidth:16,textAlign:"center",flexShrink:0,
+                    color:p1won?winCol:winner?loseCol:"transparent"}}>
+                    {p1won?"✓":winner?"✗":""}
                   </span>
                 </div>
-                {/* Rank riga sotto */}
-                <div style={{display:"flex",justifyContent:"space-between",marginTop:3}}>
-                  <span style={{fontSize:10,color:"#334155",fontFamily:"'Rajdhani',sans-serif"}}>#{m.p1r}</span>
-                  <span style={{fontSize:10,color:"#334155",fontFamily:"'Rajdhani',sans-serif"}}>#{m.p2r}</span>
+                {/* VS divider */}
+                <div style={{display:"flex",alignItems:"center",padding:"0 12px"}}>
+                  <div style={{flex:1,height:1,background:"#1e293b"}}/>
+                  <span style={{fontSize:9,fontWeight:900,color:"#1e3a5f",padding:"0 8px",letterSpacing:1}}>VS</span>
+                  <div style={{flex:1,height:1,background:"#1e293b"}}/>
+                </div>
+                {/* Riga P2 */}
+                <div style={{
+                  display:"flex",alignItems:"center",gap:8,
+                  padding:"7px 12px 9px",
+                  borderLeft:`3px solid ${p2won?winCol:winner?loseCol:"transparent"}`,
+                  background:p2won?"rgba(16,185,129,0.06)":"transparent",
+                }}>
+                  <span style={{flex:1,fontSize:13,fontWeight:m.p2===playerName?800:500,
+                    color:p2won?"#e2e8f0":winner?"#475569":"#94a3b8",
+                    textDecoration:!p2won&&winner?"line-through":"none",
+                    overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    {getNatFlag(m.p2obj?.nat)&&<span style={{marginRight:3}}>{getNatFlag(m.p2obj?.nat)}</span>}
+                    {m.p2}
+                    {m.p2===playerName&&<span style={{fontSize:10,color:"#60a5fa",marginLeft:4}}>👤</span>}
+                  </span>
+                  <span style={{fontSize:11,color:"#475569",fontFamily:"'Rajdhani',sans-serif",flexShrink:0}}>#{m.p2r}</span>
+                  <span style={{fontSize:13,fontWeight:800,minWidth:16,textAlign:"center",flexShrink:0,
+                    color:p2won?winCol:winner?loseCol:"transparent"}}>
+                    {p2won?"✓":winner?"✗":""}
+                  </span>
                 </div>
               </div>
             );
