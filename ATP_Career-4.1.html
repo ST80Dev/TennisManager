@@ -5775,7 +5775,16 @@ function GameScreen({gs}){
     // Best rank calcolato DOPO sync — usa il rank reale aggiornato
     const newBest=Math.min(updPlayer.rank, updPlayer.bestRankEver||500);
     updPlayer={...updPlayer,bestRankEver:newBest};
-    setWorld(newWorld);setBrackets(prev=>({...prev,...brks}));
+    // Il giocatore occupa il suo slot nella classifica: gli NPC dal suo rank in giù scalano di 1.
+    // Risultato stabile: 499 NPC + 1 giocatore = 500 posizioni, nessuna collisione di rank.
+    // L'NPC che verrebbe spinto a 501 viene rimosso (prima settimana: 500→499, poi stabile).
+    const pRank=updPlayer.rank;
+    const shiftedWorld={};
+    Object.values(newWorld).forEach(npc=>{
+      const sr=npc.rank>=pRank?npc.rank+1:npc.rank;
+      if(sr<=500)shiftedWorld[sr]={...npc,rank:sr};
+    });
+    setWorld(shiftedWorld);setBrackets(prev=>({...prev,...brks}));
     setPlayer(updPlayer);setWeek(nw);setYear(ny);
     if(newSponsor!==sponsor)setSponsor(newSponsor);
     setWeekDone(false);setTrainCount(0);setActiveTour(null);setTourRound(0);
@@ -5808,7 +5817,8 @@ function GameScreen({gs}){
     // Clamp a 500 (non 400) per attingere agli NPC rank 401-500 negli ITF/ChalB
     const maxRank=500;
     for(let att=0;att<12;att++){
-      const tr=clamp(Math.floor(rank+(Math.random()-0.35)*spread+(roundNum||0)*3),1,maxRank);
+      let tr=clamp(Math.floor(rank+(Math.random()-0.35)*spread+(roundNum||0)*3),1,maxRank);
+      if(tr===rank)tr=clamp(tr+1,1,maxRank); // slot del giocatore è vuoto nel world → salta
       const candidate=getATPPlayer(world,tr);
       if(!usedOppIds.has(candidate.id)){usedOppIds.add(candidate.id);return candidate;}
     }
