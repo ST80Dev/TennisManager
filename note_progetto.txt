@@ -1,13 +1,13 @@
 # ATP CAREER MANAGER — NOTE DI PROGETTO
-# Aggiornato: Marzo 2026 (sessioni 44-47)
-# Da allegare insieme ad ATP_Career-4.html all'inizio di ogni nuova sessione
+# Aggiornato: Marzo 2026 (sessioni 44-48)
+# Da allegare insieme ad ATP_Career-4.1.html all'inizio di ogni nuova sessione
 
 ═══════════════════════════════════════════════════════════
 PRASSI OPERATIVE — LEGGERE PRIMA DI TUTTO
 ═══════════════════════════════════════════════════════════
 
 1. PRIMA DI MODIFICARE: leggere BUG RISOLTI per evitare regressioni.
-2. LAVORARE SEMPRE DAL FILE /mnt/user-data/outputs/ATP_Career-4.html
+2. LAVORARE SEMPRE DAL FILE /mnt/user-data/outputs/ATP_Career-4.1.html
    (NON dal file sorgente /mnt/project/ che è la versione originale)
 3. VERIFICA: dopo ogni patch, node -e "..." per confermare parentesi + grep.
 4. DOPO OGNI PACCHETTO SOSTANZIALE: aggiornare note_progetto.txt
@@ -30,19 +30,22 @@ DESCRIZIONE DEL PROGETTO
 Gioco browser single-file (HTML + React inline + Babel) di gestione carriera
 tennistica ATP. Nessun server, nessuna dipendenza esterna, file unico.
 Salvataggio: localStorage (chiave "atp_career_v3").
-File attivo: ATP_Career-4.html (~7500+ righe)
+File attivo: ATP_Career-4.1.html (~8091 righe)
 
 ═══════════════════════════════════════════════════════════
 STACK TECNICO
 ═══════════════════════════════════════════════════════════
 
 React 18 CDN + Babel standalone JSX. Tutto in un file HTML.
-Font: Rajdhani (display/numeri) + DM Sans (body) via Google Fonts.
+Font: Rajdhani (display/numeri) + DM Sans (body) — inline nei JSX, NON via Google Fonts CDN.
+  Body base: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif.
 
 Componenti principali:
   App · CharCreation · GameScreen · WorldMap · MatchScreen
-  TrainingScreen · StaffScreen · SponsorScreen · BracketViewer · FullCalendarViewer
+  TrainingScreen · StaffScreen · SponsorScreen · FullCalendarViewer
   WinterBlockScreen · RecoveryPackPanel
+  DrawScreen · BracketTransition · BracketUpdateScreen
+  CityTransitionHUD · NewsFlashScreen
 
 ═══════════════════════════════════════════════════════════
 STRUTTURA DATI PRINCIPALI
@@ -54,27 +57,31 @@ TT — TORNEI:
   M1000:       rounds=6, draw=64,  300.000,  1000pts, minRank 100, rankFloor 1
   ATP500:      rounds=6, draw=64,  180.000,   500pts, minRank 150, rankFloor 30
   ATP250:      rounds=6, draw=64,  120.000,   250pts, minRank 315, rankFloor 30,  rankCeiling 100
-  ChallengerA: rounds=5, draw=32,   35.000,    90pts, minRank 370, rankFloor 100, rankCeiling 150
+  ChallengerA: rounds=5, draw=32,   35.000,   125pts, minRank 370, rankFloor 100, rankCeiling 150
   ChallengerB: rounds=5, draw=32,   15.000,    44pts, minRank 450, rankFloor 250, rankCeiling 250
   ITF:         rounds=4, draw=16,    8.000,     6pts, minRank 500, rankFloor 350, rankCeiling 370
   ATPFinals:   rounds=6, draw=8,  500.000,   1500pts, minRank 8,   rankFloor 1
+  NOTA: TT.pts è il label del tier; i punti reali per turno vengono da PTS_TABLE.
 
 PTS_TABLE (indice: [titolo, fin_persa, SF, QF, Ott, T2, T1]):
+  ITF:         [  6,  3,  1,  0, null, null, null]
   ChallengerA: [ 90, 50, 25,  8,  4, null, 1]
   ChallengerB: [ 44, 24, 12,  4,  2, null, 0]
   ATP250:      [250,150, 80, 30, 15,    5, 2]
   ATP500:      [500,300,160, 90, 45,   20, 5]
-  M1000:       [1000,600,360,180,90,   45,10]
-  Slam:        [2000,1200,720,360,180, 90,20]
-  ITF:         [ 6,  4,  2,  1, null, null, 0]
+  ATPFinals:   [1500,900,540,270,135,  68,15]
+  M1000:       [1000,600,360,180, 90,  45,10]
+  Slam:        [2000,1200,720,360,180, 90,45,10]  ← 8 valori (T1/T2/Seds separati)
 
-PRIZE_MONEY (tabella per pfIdx: null=0, T1=1, Ott/Q=2, QF=3, SF=4, Fin=5, Tit=6):
-  ITF:        [null,   0, 150, 300,  800, 1500, 1500]
-  ChallengerA:[null, 405, 900,2000, 4500, 9000,17500]
-  ChallengerB:[null, 300, 795,1600, 2500, 3300, 7500]
-  ATP250/500/M1000/Slam: usano PF[] × tt.prize (nessuna tabella fissa)
-  PF = [0.02,0.03,0.05,0.08,0.12,0.22,0.50]
-  Slam speciale: SF=154k, Finale_persa=280k, Titolo=500k
+PRIZE_MONEY (tabelle euro esplicite per tier — M1000 usa ancora PF[]):
+  ITF:        [null,    0,   150,   300,    800,   1500]
+  ChallengerA:[null,  405,   900,  2000,   4500,   9000, 17500]
+  ChallengerB:[null,  300,   795,  1600,   2500,   3300,  7500]
+  ATP250:     [2000, 3500,  6000, 10000,  18000,  35000, 60000]
+  ATP500:     [3000, 5500, 10000, 16000,  30000,  60000,100000]
+  ATPFinals:  [5000,10000, 18000, 30000,  55000, 100000,180000]
+  Slam:       [9000,21000, 35000, 56000,  84000, 154000,280000,500000]
+  M1000:      usa PF[] × tt.prize  →  PF = [0.02,0.03,0.05,0.08,0.12,0.22,0.50]
 
 pfIdx formula (CRITICO — non modificare):
   Null-prefix (ITF/ChalA/B): pfIdx_lose = round+1
@@ -87,14 +94,14 @@ SISTEMA PUNTI ATP (curva ricalibrata su dati reali ATP 2026):
   NPC_FIXED_POOL = sum(atpPtsForRank(1..500)) = 206.347 pts (costante)
 
 COSTI DI PARTECIPAZIONE (aggiornati sess.47):
-  ENTRY_FEE:    ITF:30 · ChalB:80 · ChalA:300 · ATP250:1000 · ATP500:2700
-                ATPFinals:2700 · M1000:6000 · Slam:10000
-  LODGE_BASE:   ITF:50 · ChalB:75 · ChalA:100 · ATP250:400 · ATP500:1000
-                M1000:2500 · Slam:5000
-  LODGE_COLLAB: ITF:10 · ChalB:20 · ChalA:40 · ATP250:70 · ATP500:150
-                M1000:350 · Slam:700
-  TRAVEL_BASE:  ITF:200 · ChalB:380 · ChalA:550 · ATP250:1200
-                ATP500:2000 · M1000:4000 · Slam:8000
+  ENTRY_FEE:         ITF:30 · ChalB:80 · ChalA:300 · ATP250:1000 · ATP500:2700
+                     ATPFinals:2700 · M1000:6000 · Slam:10000
+  LODGE_BASE:        ITF:50 · ChalB:75 · ChalA:100 · ATP250:400 · ATP500:1000
+                     ATPFinals:1000 · M1000:2500 · Slam:5000
+  LODGE_COLLAB:      ITF:10 · ChalB:20 · ChalA:40 · ATP250:70 · ATP500:150
+                     ATPFinals:150 · M1000:350 · Slam:700
+  TRAVEL_COSTS_BASE: ITF:200 · ChalB:380 · ChalA:550 · ATP250:1200
+                     ATP500:2000 · ATPFinals:2000 · M1000:4000 · Slam:8000
   Zone mult:    stessa=0.30 · adiacente=1.00 · intercontinentale=2.00
 
   Break-even con 3 staff (coach+prep+fisio), stessa zona:
@@ -121,10 +128,11 @@ TRAINING GAIN (aggiornati sess.47 — +14-17% vs precedenti):
     Anno 12 (età 26): pStr ~28 → zona top 10
     Top 10 statisticamente raggiungibile a età 25-26 con scelte ottimali
 
-BUDGET INIZIALE PER ETÀ:
-  15:2500€ · 16:3500€ · 17:4500€ · 18:5750€ · 19:7000€
+BUDGET INIZIALE PER ETÀ (AGE_BUDGETS/AGE_START_PTS — valori corretti):
+  15:1800€ · 16:2400€ · 17:3200€ · 18:4000€ · 19:5000€
   Punti ATP iniziali: 15=0 · 16=12 · 17=26 · 18=40 · 19=81
   Pool stat iniziale: 15=35pt · 16=42 · 17=50 · 18=55 · 19=60
+  (I valori budget precedenti nelle note erano errati: 2500/3500/4500/5750/7000)
 
 SISTEMA NPC — PACCHETTO B (implementato sess.46):
   npcPersonalLevel[id]: dizionario globale (come npcForm), persistente tra settimane
@@ -159,6 +167,41 @@ MORALE — Sistema V3:
   Driver principale: pureWinPct (calcolato a morale=50, fatica=0)
   Shift proporzionale al morale di partenza — effettivo per tutti i valori
   Calo forte solo per favoriti netti che perdono con morale alto
+
+BONUS_CARDS — carte boost in-match (sess.48):
+  6 carte totali, 3 estratte a caso per ogni partita
+  {id:"ace",    nome:"Ace Boost",     icon:"🚀", bonus:{servizio:6},   serviceOnly:true}
+  {id:"clutch", nome:"Break Clutch",  icon:"💎", bonus:{mentale:8}}
+  {id:"rally",  nome:"Rally King",    icon:"👑", bonus:{resistenza:5, dritto:4}}
+  {id:"speed",  nome:"Speed Burst",   icon:"⚡", bonus:{velocita:10}}
+  {id:"net",    nome:"Net Attack",    icon:"🥅", bonus:{volee:9}}
+  {id:"wind",   nome:"Secondo Fiato", icon:"🌬️", bonus:{resistenza:10}}
+  Ogni carta ha una finestra di attivazione di 2-3 game.
+
+EVENTI — NewsFlashScreen (sess.48):
+  Interruzione settimanale con 5 categorie:
+  1. Infortuni (inj_*): shoulder/knee/back/ankle/wrist/serious/fatigue_muscle
+     Effetti: fatigueFloor, pStrPenalty, durata settimane
+  2. Logistica (log_*): flight/visa/equipment/fine/illness/hotel/stringer/delay
+     Effetti: moneyCost, moraleDelta, blockZoneChange, blockTournaments
+  3. Forma (form_*): slump/burnout/mental/tech/doubt/pressure
+     Effetti: moralePctDrop, trainGainPenalty, durata settimane
+  4. Positivi (pos_*): form/sponsor_extra/media/videoanalysis
+     Effetti: pStrBonus, moneyCost (negativo = guadagno)
+  5. Colore (col_*): interview/training/fan/city/food/legend/players/documentary
+     Effetti: atmosferici, moraleDelta, tvBonus
+  Frequenza: Anno1=10% · Anno2=40% · Anno3=70% · Anno4+=100%
+  Cooldown per categoria: 3-14 settimane (evita clustering)
+
+COSTI SETTIMANALI (fuori torneo — living costs per rank):
+  Rank >350: €55 · 301-350: €75 · 251-300: €95 · 201-250: €120
+  Rank 151-200: €155 · 101-150: €200 · 51-100: €280 · ≤50: €420
+
+RECOVERY PACKS — opzioni post-torneo (4 livelli):
+  🥤 Bibita:       −10% fatica  (costo basso)
+  💆 Massaggio:    −20% fatica
+  🏥 Fisioterapia: −30% fatica  (costo scalato per tier)
+  ⚡ Spa Day:       −40% fatica  (costo alto)
 
 ═══════════════════════════════════════════════════════════
 BUG RISOLTI — EVITARE REGRESSIONI
@@ -256,6 +299,7 @@ MODIFICHE — CRONOLOGIA RECENTE
 
 --- SESS.47 ---
 - NAT_NAMES: pool da 10 a 20 nomi+cognomi per nazione (23 nazionalità)
+  NOTA: era 23 nazionalità nelle note ma il file ATP400 + NATS copre 47+ nazionalità
   Bug duplicato SRB corretto (sovrascriveva ROU)
   genNameFromSeed(seed): genera nome da seed arbitrario — usato dai replacement NPC
   generateReplacementNPC: usa genNameFromSeed(seed) invece di genNameForRank(rank)
@@ -276,6 +320,31 @@ MODIFICHE — CRONOLOGIA RECENTE
 - Fix crash Anno completo: week→currentWeek in FullCalendarViewer
 - Fix filtri calendario crash: cap 8 tornei/sett con nessun filtro attivo
 
+--- SESS.48 (versione 4.1) ---
+- File rinominato: ATP_Career-4.1.html (~8091 righe, era ~7500+)
+- BONUS_CARDS: 6 carte boost in-match, 3 estratte a caso per partita
+  ace/clutch/rally/speed/net/wind — con finestra attivazione 2-3 game
+- DrawScreen: sorteggio animato con reveal progressivo degli slot
+  Badge seeding, evidenziazione avversari proiettati QF/SF/Finale
+  Bottone Skip; accetta prop: bracket, playerName, playerNat, tourName, tourType, surface...
+- BracketTransition: animazione match result → avanzamento turno
+  Reveal winner/loser status, freccia progressione round, animazione tiebreak
+- BracketUpdateScreen: riepilogo turno post-match con tabellone
+  Prossimo avversario preview, banner fine torneo
+- CityTransitionHUD: animazione cinematica viaggio verso torneo
+  Veicolo animato (scala con distanza), progress bar, reveal accommodation fine
+  Sostituisce FlightScreen overlay; aereo ora sulla WorldMap in header
+- NewsFlashScreen: schermata interruzione eventi settimanali
+  5 categorie (inj/log/form/pos/col) con icone e descrizioni effetti
+- PRIZE_MONEY: tabelle esplicite per ATP250/500/ATPFinals/Slam
+  (prima usavano PF[] × tt.prize; M1000 ancora con PF[])
+- PTS_TABLE ATPFinals aggiunta: [1500,900,540,270,135,68,15]
+- PTS_TABLE ITF corretta: [6,3,1,0,null,null,null] (era [6,4,2,1,null,null,0])
+- LODGE_BASE/LODGE_COLLAB/TRAVEL_COSTS_BASE: aggiunte voci ATPFinals
+  LODGE_BASE ATPFinals=1000 · LODGE_COLLAB ATPFinals=150 · TRAVEL_COSTS_BASE ATPFinals=2000
+- Budget per età corretti: 1800/2400/3200/4000/5000 (erano errati in note prec.)
+- Font: Rajdhani+DM Sans usati inline nei JSX; body base = system fonts (no CDN)
+
 ═══════════════════════════════════════════════════════════
 FEATURE NON IMPLEMENTATE / ROADMAP
 ═══════════════════════════════════════════════════════════
@@ -290,15 +359,17 @@ FEATURE NON IMPLEMENTATE / ROADMAP
 ISTRUZIONI PER NUOVA SESSIONE
 ═══════════════════════════════════════════════════════════
 
-1. Allega note_progetto.txt + ATP_Career-4.html (da /mnt/user-data/outputs/)
+1. Allega note_progetto.txt + ATP_Career-4.1.html (da /mnt/user-data/outputs/)
 2. "Riprendi il progetto ATP Career Manager dalle note allegate"
-3. SEMPRE lavorare da /mnt/user-data/outputs/ATP_Career-4.html
+3. SEMPRE lavorare da /mnt/user-data/outputs/ATP_Career-4.1.html
 4. Leggere PRASSI OPERATIVE e BUG RISOLTI prima di modificare
 5. Usare Python per sostituzioni su blocchi JSX con caratteri speciali
-6. ULTIMA SESSIONE (47):
-   - Entry fee ribilanciate: 30/80/300/1000/2700/6000/10000
-   - Gain allenamento +14-17%, trainBonus coach +15%
-   - NAT_NAMES a 20 nomi per pool, genNameFromSeed per replacement
-   - Fix crash Anno completo (week→currentWeek)
-   - Fix filtri calendario combinabili + cap 8 tornei nessun filtro
-   - Pacchetto B NPC personalLevel con floor/ceiling assoluti di carriera
+6. ULTIMA SESSIONE (48 — versione 4.1):
+   - BonusCards in-match (6 carte, 3 per partita)
+   - DrawScreen + BracketTransition + BracketUpdateScreen animati
+   - CityTransitionHUD (viaggio cinematico) sostituisce FlightScreen
+   - NewsFlashScreen (eventi settimanali 5 categorie)
+   - PRIZE_MONEY ora tabelle esplicite per ATP250/500/ATPFinals/Slam
+   - PTS_TABLE ATPFinals e ITF corrette
+   - Budget per età corretti: 1800/2400/3200/4000/5000
+   - LODGE/TRAVEL aggiunte voci ATPFinals
