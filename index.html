@@ -4850,7 +4850,7 @@ function CharCreation({onStart,hasSave,onResume,onImport}){
           {hasSave&&(
             <button onClick={onResume}
               style={{width:"100%",background:"#10b981",border:"none",borderRadius:8,padding:"11px 0",color:"#fff",fontWeight:"bold",cursor:"pointer",fontSize:14}}>
-              ▶ Riprendi partita salvata
+              ▶ Riprendi partita corrente
             </button>
           )}
           <button onClick={()=>importRef.current?.click()}
@@ -8246,7 +8246,8 @@ function App(){
   }
   function resume(){const s=loadL();if(s){const migratedWorld=migrateWorldPool(s.atpWorld||{});const migrated={...s,atpWorld:migratedWorld};saveL(migrated);setGs(migrated);setScreen("game");}}
   if(screen==="boot")return <div style={{minHeight:"100vh",background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:18}}>🎾 Caricamento ATP Career...</div>;
-  if(screen==="creation")return <CharCreation onStart={startNew} hasSave={hasSave} onResume={resume} onImport={f=>importSave(f,state=>{saveL(state);window.location.reload();})}/>;
+  function handleImport(f){importSave(f,state=>{const migratedWorld=migrateWorldPool(state.atpWorld||{});const migrated={...state,atpWorld:migratedWorld};saveL(migrated);setGs(migrated);setHasSave(true);setScreen("game");});}
+  if(screen==="creation")return <CharCreation onStart={startNew} hasSave={hasSave} onResume={resume} onImport={handleImport}/>;
   if(screen==="game"&&gs)return <GameScreen gs={gs}/>;
   return null;
 }
