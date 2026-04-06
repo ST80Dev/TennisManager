@@ -4287,6 +4287,15 @@ function TrainingScreen({player,staff,onTrain,onFinish,trainCount,week,morale}){
   const canRest=slotsLeft>0;
   const canTrain=canDoStat||canRest;
 
+  const prevTrainCount=React.useRef(trainCount);
+  React.useEffect(()=>{
+    if(trainCount>prevTrainCount.current&&trainCount>=slotsMax){
+      const t=setTimeout(()=>onFinish(),600);
+      return()=>clearTimeout(t);
+    }
+    prevTrainCount.current=trainCount;
+  },[trainCount,slotsMax,onFinish]);
+
   function doTrain(){
     if(!chosen||!canTrain)return;
     onTrain(chosen);
@@ -4391,11 +4400,6 @@ function TrainingScreen({player,staff,onTrain,onFinish,trainCount,week,morale}){
         </button>
       )}
 
-      {/* Pulsante concludi settimana */}
-      <button onClick={onFinish}
-        style={{width:"100%",background:"linear-gradient(90deg,#10b981,#059669)",border:"none",borderRadius:12,padding:14,color:"#fff",fontWeight:"bold",fontSize:15,cursor:"pointer"}}>
-        {trainCount>0?"✅ Concludi allenamenti →":"⏭ Salta allenamento →"}
-      </button>
     </div>
   );
 }
@@ -4831,33 +4835,26 @@ function CharCreation({onStart,hasSave,onResume,onImport}){
       <div style={{fontSize:56,marginBottom:4}}>🎾</div>
       <h1 style={{fontSize:28,fontWeight:900,letterSpacing:2,margin:"0 0 4px",background:"linear-gradient(90deg,#f59e0b,#ef4444)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>ATP CAREER</h1>
       <p style={{color:"#64748b",marginBottom:24,fontSize:13}}>Scala il ranking mondiale. Diventa il N°1.</p>
-      {hasSave&&(
-        <Card style={{width:"100%",maxWidth:480,marginBottom:16,border:"1px solid #10b981"}}>
-          <div style={{fontWeight:"bold",marginBottom:6}}>💾 Partita salvata</div>
-          <div style={{fontSize:12,color:"#94a3b8",marginBottom:10}}>Vuoi continuare o iniziare da capo?</div>
-          <div style={{display:"flex",gap:8,marginBottom:8}}>
-            <button onClick={onResume} style={{flex:2,background:"#10b981",border:"none",borderRadius:8,padding:"10px 0",color:"#fff",fontWeight:"bold",cursor:"pointer",fontSize:14}}>▶ Riprendi</button>
-            <button onClick={()=>{delL();window.location.reload();}} style={{flex:1,background:"#334155",border:"none",borderRadius:8,padding:"10px 0",color:"#94a3b8",cursor:"pointer",fontSize:12}}>✕ Nuova</button>
-          </div>
-          <button onClick={()=>importRef.current?.click()}
-            style={{width:"100%",background:"rgba(59,130,246,0.12)",border:"1px solid #3b82f633",borderRadius:8,padding:"9px 0",color:"#3b82f6",fontWeight:700,fontSize:13,cursor:"pointer"}}>
-            📥 Importa salvataggio esterno
+      <Card style={{width:"100%",maxWidth:480,marginBottom:16,border:"1px solid #334155"}}>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <button onClick={()=>{if(hasSave){if(window.confirm("Cancellare il salvataggio attuale e iniziare una nuova carriera?")){delL();window.location.reload();}}}}
+            style={{width:"100%",background:"linear-gradient(90deg,#f59e0b,#ef4444)",border:"none",borderRadius:10,padding:"14px 0",color:"#fff",fontWeight:900,fontSize:16,cursor:"pointer",letterSpacing:1,boxShadow:"0 4px 16px rgba(245,158,11,0.3)",opacity:hasSave?1:0.5}}>
+            {hasSave?"🎾 Nuova Carriera":"🎾 Crea la tua carriera qui sotto"}
           </button>
-          <input ref={importRef} type="file" accept=".json" style={{display:"none"}}
-            onChange={e=>{if(e.target.files[0])onImport(e.target.files[0]);}}/>
-        </Card>
-      )}
-      {!hasSave&&(
-        <Card style={{width:"100%",maxWidth:480,marginBottom:16,border:"1px solid #1e3a5f"}}>
-          <div style={{fontWeight:"bold",marginBottom:6,color:"#64748b"}}>💾 Nessuna partita salvata</div>
+          {hasSave&&(
+            <button onClick={onResume}
+              style={{width:"100%",background:"#10b981",border:"none",borderRadius:8,padding:"11px 0",color:"#fff",fontWeight:"bold",cursor:"pointer",fontSize:14}}>
+              ▶ Riprendi partita salvata
+            </button>
+          )}
           <button onClick={()=>importRef.current?.click()}
             style={{width:"100%",background:"rgba(59,130,246,0.12)",border:"1px solid #3b82f633",borderRadius:8,padding:"10px 0",color:"#3b82f6",fontWeight:700,fontSize:13,cursor:"pointer"}}>
             📥 Importa salvataggio
           </button>
           <input ref={importRef} type="file" accept=".json" style={{display:"none"}}
             onChange={e=>{if(e.target.files[0])onImport(e.target.files[0]);}}/>
-        </Card>
-      )}
+        </div>
+      </Card>
       <Card style={{width:"100%",maxWidth:480,marginBottom:16}}>
         <div style={{display:"flex",gap:10,marginBottom:16}}>
           <input value={name} onChange={e=>setName(e.target.value)} placeholder="Nome (es. M. Rossi)" style={{flex:1,background:"#0f172a",border:"1px solid #334155",borderRadius:8,padding:"9px 12px",color:"#fff",fontSize:14,outline:"none"}}/>
