@@ -1,5 +1,5 @@
 # ATP CAREER MANAGER — NOTE DI PROGETTO
-# Aggiornato: Marzo 2026 (sessioni 44-47)
+# Aggiornato: Aprile 2026 (sessioni 48-49)
 # Da allegare insieme ad ATP_Career-4.html all'inizio di ogni nuova sessione
 
 ═══════════════════════════════════════════════════════════
@@ -30,19 +30,20 @@ DESCRIZIONE DEL PROGETTO
 Gioco browser single-file (HTML + React inline + Babel) di gestione carriera
 tennistica ATP. Nessun server, nessuna dipendenza esterna, file unico.
 Salvataggio: localStorage (chiave "atp_career_v3").
-File attivo: ATP_Career-4.html (~7500+ righe)
+File attivo: ATP_Career-4.html (~8200+ righe)
 
 ═══════════════════════════════════════════════════════════
 STACK TECNICO
 ═══════════════════════════════════════════════════════════
 
-React 18 CDN + Babel standalone JSX. Tutto in un file HTML.
+React 18 CDN (production.min) + Babel standalone JSX. Tutto in un file HTML.
+Script tag: crossorigin + data-presets="react,env" per compatibilità Safari iOS.
 Font: Rajdhani (display/numeri) + DM Sans (body) via Google Fonts.
 
 Componenti principali:
   App · CharCreation · GameScreen · WorldMap · MatchScreen
   TrainingScreen · StaffScreen · SponsorScreen · BracketViewer · FullCalendarViewer
-  WinterBlockScreen · RecoveryPackPanel
+  WinterBlockScreen · RecoveryPackPanel · DrawScreen · BracketUpdateScreen
 
 ═══════════════════════════════════════════════════════════
 STRUTTURA DATI PRINCIPALI
@@ -53,11 +54,24 @@ TT — TORNEI:
   Slam:        rounds=7, draw=128, 700.000,  2000pts, minRank 104, rankFloor 1
   M1000:       rounds=6, draw=64,  300.000,  1000pts, minRank 100, rankFloor 1
   ATP500:      rounds=6, draw=64,  180.000,   500pts, minRank 150, rankFloor 30
-  ATP250:      rounds=6, draw=64,  120.000,   250pts, minRank 315, rankFloor 30,  rankCeiling 100
+  ATP250:      rounds=6, draw=64,  120.000,   250pts, minRank 315, rankFloor 30,  rankCeiling 60
   ChallengerA: rounds=5, draw=32,   35.000,    90pts, minRank 370, rankFloor 100, rankCeiling 150
   ChallengerB: rounds=5, draw=32,   15.000,    44pts, minRank 450, rankFloor 250, rankCeiling 250
   ITF:         rounds=4, draw=16,    8.000,     6pts, minRank 500, rankFloor 350, rankCeiling 370
   ATPFinals:   rounds=6, draw=8,  500.000,   1500pts, minRank 8,   rankFloor 1
+
+  NOTA: rankCeiling ATP250 era 100, ora è 60 (rank 61-100 può ancora giocare ATP250).
+  Questo risolve la trappola rolling points alla transizione rank 100-150.
+
+FASCE DI ACCESSO TORNEI (rank giocatore):
+  ITF:         rank qualsiasi (solo FC o rank ≥370)
+  Challenger B: rank 250–450
+  Challenger A: rank 150–370
+  ATP 250:      rank 60–315   ← ceiling abbassato da 100 a 60
+  ATP 500:      rank 1–150
+  Masters 1000: rank 1–100
+  Grand Slam:   rank 1–104
+  ATP Finals:   rank 1–8
 
 PTS_TABLE (indice: [titolo, fin_persa, SF, QF, Ott, T2, T1]):
   ChallengerA: [ 90, 50, 25,  8,  4, null, 1]
@@ -68,13 +82,10 @@ PTS_TABLE (indice: [titolo, fin_persa, SF, QF, Ott, T2, T1]):
   Slam:        [2000,1200,720,360,180, 90,20]
   ITF:         [ 6,  4,  2,  1, null, null, 0]
 
-PRIZE_MONEY (tabella per pfIdx: null=0, T1=1, Ott/Q=2, QF=3, SF=4, Fin=5, Tit=6):
-  ITF:        [null,   0, 150, 300,  800, 1500, 1500]
-  ChallengerA:[null, 405, 900,2000, 4500, 9000,17500]
-  ChallengerB:[null, 300, 795,1600, 2500, 3300, 7500]
-  ATP250/500/M1000/Slam: usano PF[] × tt.prize (nessuna tabella fissa)
+PRIZE_MONEY (tabella per pfIdx):
+  ITF/ChalA/ChalB: tabella fissa per slot
+  ATP250/500/M1000/Slam: usano PF[] × tt.prize
   PF = [0.02,0.03,0.05,0.08,0.12,0.22,0.50]
-  Slam speciale: SF=154k, Finale_persa=280k, Titolo=500k
 
 pfIdx formula (CRITICO — non modificare):
   Null-prefix (ITF/ChalA/B): pfIdx_lose = round+1
@@ -86,7 +97,7 @@ SISTEMA PUNTI ATP (curva ricalibrata su dati reali ATP 2026):
   Rank 1=12000 · 10=3800 · 50=800 · 100=390 · 200=195 · 400=40 · 500=5
   NPC_FIXED_POOL = sum(atpPtsForRank(1..500)) = 206.347 pts (costante)
 
-COSTI DI PARTECIPAZIONE (aggiornati sess.47):
+COSTI DI PARTECIPAZIONE:
   ENTRY_FEE:    ITF:30 · ChalB:80 · ChalA:300 · ATP250:1000 · ATP500:2700
                 ATPFinals:2700 · M1000:6000 · Slam:10000
   LODGE_BASE:   ITF:50 · ChalB:75 · ChalA:100 · ATP250:400 · ATP500:1000
@@ -97,9 +108,6 @@ COSTI DI PARTECIPAZIONE (aggiornati sess.47):
                 ATP500:2000 · M1000:4000 · Slam:8000
   Zone mult:    stessa=0.30 · adiacente=1.00 · intercontinentale=2.00
 
-  Break-even con 3 staff (coach+prep+fisio), stessa zona:
-    ITF: Titolo · ChalB/ChalA: SF · ATP250+: già al T1 · Slam: T2
-
 STAFF_LEVELS (5 ruoli, 3 livelli):
   coach:   280/560/1100/sett  trainBonus: 1.61/1.90/2.24
   prep:    210/420/840/sett
@@ -107,19 +115,14 @@ STAFF_LEVELS (5 ruoli, 3 livelli):
   sparring:175/350/700/sett   (LOCK rank>250)
   physio:  245/490/980/sett
 
-TRAINING GAIN (aggiornati sess.47 — +14-17% vs precedenti):
+TRAINING GAIN (aggiornati sess.47):
   Servizio/Dritto/Rovescio/Volee: [0.08, 0.17] per slot
   Velocità/Resistenza:            [0.07, 0.13] per slot
   Focus Mentale:                  [0.05, 0.10] per slot
-  dimFactor = max(0.15, ((35-stat)/35)^0.6)   [curva concava Fix1]
-  capFactor = max(0, min(1, (coachCap-stat+3)/3))  [cap implicito Fix3]
+  dimFactor = max(0.15, ((35-stat)/35)^0.6)
+  capFactor = max(0, min(1, (coachCap-stat+3)/3))
   coachCap: none=13, base=19, esperto=25, elite=32
   trainBonus: none=1.0, base=1.61, esperto=1.90, elite=2.24
-  Progressione attesa (uniforme, schedule realistico base@3/esp@7/elite@9):
-    Anno 7 (età 21): pStr ~20 → rank ~180
-    Anno 9 (età 23): pStr ~24 → rank ~50
-    Anno 12 (età 26): pStr ~28 → zona top 10
-    Top 10 statisticamente raggiungibile a età 25-26 con scelte ottimali
 
 BUDGET INIZIALE PER ETÀ:
   15:2500€ · 16:3500€ · 17:4500€ · 18:5750€ · 19:7000€
@@ -127,71 +130,108 @@ BUDGET INIZIALE PER ETÀ:
   Pool stat iniziale: 15=35pt · 16=42 · 17=50 · 18=55 · 19=60
 
 SISTEMA NPC — PACCHETTO B (implementato sess.46):
-  npcPersonalLevel[id]: dizionario globale (come npcForm), persistente tra settimane
-  initRank: campo immutabile su ogni NPC (buildWorld, generateReplacementNPC, migrateWorldPool)
+  npcPersonalLevel[id]: dizionario globale persistente tra settimane
+  initRank: campo immutabile su ogni NPC
   A isNewYear: drift personalLevel per archetype
     Costante ±8% · Tardivo ±10% · Progressivo ±12% · Precoce ±15% · Volatile ±20%
-  Floor/ceiling ASSOLUTI di carriera (non annuali):
+  Floor/ceiling ASSOLUTI di carriera:
     floor = atpPtsForRank(min(400, initRank×8))
     ceiling = atpPtsForRank(max(1, initRank÷3))
-    Es: rank 2 (Alcaraz) → floor rank 16, ceiling rank 1 → può stabilizzarsi a rank 6-16
-  Phase 1 simWeek: MR punta a personalLevel invece di atpPtsForRank(rank)
-  Noise ridotto (PB gestisce mobilità strutturale, rumore = solo forma settimanale):
-    rank≤30: ±0.3% · rank≤100: ±0.6% · altri: ±1.0%
   MR: rank≤20: 0.050 · rank≤100: 0.035 · rank≤300: 0.045 · altri: 0.060
-  Pool fisso Phase 3b: NPC_FIXED_POOL = 206.347 (non ricalcolato dai rank post-riordino)
-  Anno 1: classifica quasi statica (nessun drift ancora) — mobilità visibile da anno 2+
-  Simulazione: dopo 8 anni, rank 2 Volatile può stabilizzarsi a rank 4-10
+  Pool fisso Phase 3b: NPC_FIXED_POOL = 206.347 (costante)
+
+MODALITÀ DI GIOCO (gameMode — introdotta sess.49):
+  "classic"  — NPC invecchiano, decadono fisicamente e si ritirano normalmente.
+               Circuito realistico: dopo anni i top attuali calano o scompaiono.
+  "legend"   — NPC cristallizzati: età mai incrementata, nessun decay fisico,
+               nessun ritiro. Alcaraz/Sinner/Djokovic rimangono ai livelli
+               attuali per tutta la carriera. Il GIOCATORE invecchia normalmente.
+  Selezionabile nella schermata di creazione personaggio (step stat).
+  Salvato nel save come gs.gameMode. In GameScreen: const legendMode = ...
+  Badge "⭐ Leggenda" visibile nell'header del calendario.
+  Implementazione: simWeek riceve extraOpts={legendMode}, blocco Phase 0
+  (isNewYear aging + retiredIds) protetto con if(!isLegendMode).
+
+ANNO REALE (introdotto sess.49):
+  realYear = 2025 + (year - 1)
+  Anno 1 di carriera = 2025, Anno 10 = 2034.
+  Mostrato al posto di "Anno X" in: header calendario, tab profilo,
+  notifica fine stagione, scadenza sponsor.
+  Calcolato in GameScreen come costante: const realYear = 2025 + (year - 1).
+
+EVENTI LOG_FLIGHT — FIX FREQUENZA (sess.49):
+  Bug: il weighted sample dal pool logico sceglieva SEMPRE un candidato
+  se il pool non era vuoto → log_flight scattava ogni 2 settimane.
+  Fix: gate probabilistico PRIMA del weighted sample:
+    rank≤200: 3.5% per settimana → ~1-2 eventi/stagione
+    rank 200-350 + awayFromHome: 1.5% per settimana
+  Volo privato: pulsante nel banner blockZoneChange (solo log_flight,
+  non log_visa). Costo per rank: ≤30→8k · ≤60→6k · ≤100→4.5k ·
+  ≤150→3k · ≤200→2k · >200: non disponibile.
+
+SORTEGGIO E BRACKET (introdotti sess.48-49):
+  DrawScreen: sorteggio animato stile B (seeded prima, poi non-seeded).
+    Timing: seeded 220ms, non-seeded 110ms. Footer fisso con T1/QF/SF.
+    Logica QF/SF: stesso quarto=QF, stessa metà+quarto diverso=SF.
+    Per draw ≥64: mostra sezione da 32 slot intorno al giocatore.
+    Prop playerNat passata per mostrare bandiera del giocatore.
+    Container: height:100vh + overflow:hidden per footer fisso.
+  BracketUpdateScreen: tabellone aggiornato post-match (obbligatorio,
+    con pulsante Salta). Mostra risultati round + prossimo avversario
+    o celebrazione fine torneo. Sostituisce BracketTransition inline.
+  Flusso: entrata torneo → DrawScreen → match → BracketUpdateScreen → ...
+  bracketUpdateCallback.current: ref che memorizza l'azione da eseguire
+  dopo che l'utente chiude il BracketUpdateScreen.
+
+SCHERMATA INIZIALE (sess.49):
+  Import salvataggio disponibile alla schermata di creazione/avvio:
+    - Con save esistente: pulsante "📥 Importa salvataggio esterno" sotto Riprendi
+    - Senza save: card dedicata con solo il pulsante import
+  CharCreation ora accetta prop onImport.
+
+TABELLA SOGLIE TORNEI (sess.49):
+  Pannello collassabile nel calendario ("🏆 Soglie accesso tornei").
+  Tre stati dinamici per riga:
+    ✓ verde = accessibile al rank attuale
+    ~ giallo = entro 15 rank (quasi raggiungibile o a rischio perdita)
+    — grigio = non disponibile
+  Funziona in entrambe le direzioni (salita e discesa di rank).
+  Stato: showTierTable (useState in GameScreen).
 
 NAT_NAMES — POOL NOMI (aggiornato sess.47):
-  23 nazionalità × 20 nomi + 20 cognomi = 400 combinazioni per nazione
-  (era 10+10 — dimezza collisioni di cognome nella fascia Challenger/ITF)
-  Bug SRB duplicato corretto (sovrascriveva ROU)
-  generateReplacementNPC ora usa genNameFromSeed(seed) invece di genNameForRank(rank)
-  → ogni NPC replacement ha nome univoco basato sul suo seed, non sul rank assegnato
+  23 nazionalità × 20 nomi + 20 cognomi
+  generateReplacementNPC usa genNameFromSeed(seed)
 
 STORIA PARTITE — history[]:
-  Cap: 30 tornei (unità di cancellazione, mai taglia a metà un torneo)
-  Ogni entry include: opp:{name,rank,nat}, sets:[{pg,og,w}]
-  Schermata storico: raggruppata per torneo, card collassabili
+  Cap: 30 tornei. Ogni entry include: opp:{name,rank,nat}, sets:[{pg,og,w}]
 
 MORALE — Sistema V3:
   Driver principale: pureWinPct (calcolato a morale=50, fatica=0)
-  Shift proporzionale al morale di partenza — effettivo per tutti i valori
-  Calo forte solo per favoriti netti che perdono con morale alto
+  Shift proporzionale al morale di partenza
 
 ═══════════════════════════════════════════════════════════
 BUG RISOLTI — EVITARE REGRESSIONI
 ═══════════════════════════════════════════════════════════
 
-[BUG 1-53: vedi sessioni precedenti]
+[BUG 1-60: vedi sessioni precedenti]
 
-54. PRIZE_MONEY INDICE INVERTITO (sess.27): tabella era in ordine PTS_TABLE
-    (Tit->T1) ma pfIdx funziona al contrario. Fix: non invertire mai.
+61. LOG_FLIGHT TROPPO FREQUENTE (sess.49): weighted sample dal pool logico
+    scelto sempre se non vuoto → scattava ogni 2 settimane.
+    Fix: gate probabilistico (3.5%/1.5%) prima del weighted sample.
 
-55. KEYING NPC PER RANK (sess.32): world keyed per rank numerico causava
-    attrazione ai punti del NUOVO rank dopo riordino. Fix: byId keyed per p.id.
+62. JSX FRAGMENT ORFANO (sess.49): rimozione riquadro "Log ultimo game"
+    lasciò un </div> ridondante → SyntaxError Babel "Expected closing tag <>".
+    Fix: rimosso il div extra nel pannello win%.
 
-56. SETTIMANA LIBERA CRASH FullCalendarViewer (sess.47): usava variabile
-    week (stato GameScreen) invece di currentWeek (prop). Fix: w-currentWeek.
-    REGOLA: variabili di stato GameScreen non accessibili in componenti figli.
+63. DRAWSCREEN FOOTER NON FISSO (sess.49): container usava minHeight:"100vh"
+    invece di height:"100vh" → il browser scrollava la pagina intera.
+    Fix: height:"100vh" + overflow:"hidden" sul container.
 
-57. ESPINOZA MOLTIPLICATO (sess.47): generateReplacementNPC chiamava
-    genNameForRank(rank) con rank 370-400 (31 valori) — collisioni inevitabili
-    con 47+ replacement. Fix: genNameFromSeed(seed) usa l'ID univoco del NPC.
-    Script riparazione save esistenti disponibile in sessione 47.
+64. BANDIERA GIOCATORE MANCANTE IN DRAWSCREEN (sess.49): p.nat vuoto per
+    il giocatore locale. Fix: prop playerNat passata da GameScreen.
 
-58. HORIZONWEEKS IN FULLCALENDARVIEWER (sess.47): il separatore "N sett. libere"
-    usava horizonWeeks[wi-1] (variabile GameScreen non accessibile).
-    Fix: weekData[wi-1].w in entrambi i contesti (calendario + full calendar).
-
-59. CALFILTER CRASH CON NESSUN FILTRO (sess.47): con entrambi i filtri
-    disattivati e ITF attivi, il browser mobile crashava per troppi tornei renderizzati.
-    Fix: cap a 8 tornei per settimana quando nessun filtro è attivo + badge "+N altri".
-
-60. USEDOPPIDS NON RESETTATO (analisi sess.47): usedOppIds var è correttamente
-    resettato in enterTournament — non è un bug. La ripetizione di Espinoza
-    era un problema di collisione nomi nei replacement (vedi bug 57).
+65. MATCHIDX MANCANTE NEI MATCH (sess.49): DrawScreen usava m.matchIdx
+    non presente nella struttura bracket. Fix: usa indice forEach (mi).
 
 ═══════════════════════════════════════════════════════════
 DECISIONI DI DESIGN
@@ -201,87 +241,57 @@ DECISIONI DI DESIGN
 - Rank display: sempre esatto (#420 ecc.), solo "FC" se <5pts ATP
 - Stats e Forza per superficie: in schermata Profilo (non Calendario)
 - Storico partite: raggruppato per torneo, card collassabili, cap 30 tornei
-- Pool nomi: 20 per nazione (era 10) per ridurre collisioni fascia Challenger/ITF
+- Pool nomi: 20 per nazione per ridurre collisioni fascia Challenger/ITF
 - Entry fee: graduale dal basso (30/80/300/1000/2700/6000/10000)
-  break-even T1 ATP250+ sempre positivo (coerente col circuito reale)
-- Gain allenamento +14-17%: top 10 raggiungibile a 25-26 anni con scelte ottimali
-- TrainBonus coach +15%: base 1.61 / esperto 1.90 / elite 2.24
-- personalLevel NPC: floor×8/ceiling÷3 assoluti di carriera (non annuali)
-  → Alcaraz può uscire stabilmente dai top 3 dopo anni difficili (Volatile)
-- NPC_FIXED_POOL costante in Phase 3b: evita compressione strutturale dei top
-- Noise NPC ridotto con Pacchetto B: personalLevel gestisce mobilità strutturale
-- Anno 1 classifica NPC quasi statica: drift scatta a isNewYear (settimana 1 anno 2)
+- Gain allenamento +14-17%: top 10 raggiungibile a 25-26 anni
+- TrainBonus coach: base 1.61 / esperto 1.90 / elite 2.24
+- personalLevel NPC: floor×8/ceiling÷3 assoluti di carriera
+- NPC_FIXED_POOL costante in Phase 3b
+- Anno 1 classifica NPC quasi statica: drift scatta a isNewYear anno 2+
+- ATP250 rankCeiling=60: rank 61-100 mantiene accesso ATP250
+  (era 100, abbassato per risolvere trappola rolling points transizione)
+- Anno reale 2025+: immersione narrativa, visibile in tutta la UI
+- Modalità Leggenda: NPC cristallizzati, solo per chi vuole sfidare
+  i top attuali per tutta la carriera senza vederli decadere
 
 ═══════════════════════════════════════════════════════════
 MODIFICHE — CRONOLOGIA RECENTE
 ═══════════════════════════════════════════════════════════
 
-[sess.1-43: vedi versione precedente note_progetto.txt]
+[sess.1-47: vedi versione precedente note_progetto.txt]
 
---- SESS.44-45 ---
-- ITF tier aggiunto: draw 16, 4 turni, colore #c2680a, rankCeiling 370, minRank 500
-  ~56 tornei distribuiti nelle 4 zone con bandiere
-- Calendario: header settimana con badge +N distanza, separatore "N sett. libere"
-  tra settimane non consecutive
-- Filtri calendario: due toggle indipendenti combinabili (Accessibili / Mia zona)
-  cap a 8 tornei/sett con nessun filtro attivo per evitare crash mobile
-- Storia partite: raggruppata per torneo con card collassabili
-  intestazione: nome+bandiera, badge tier/superficie, risultato finale, pts+prize
-  dettaglio: ogni match con ✓/✗, badge turno, avversario nat+nome+rank, score set
-  cap a 30 tornei (unità di cancellazione), opp e sets salvati nel match
-- Rank display: sempre esatto (#420 ecc.), FC solo se <5pts ATP
-- Stats + Forza per superficie: spostate dal Calendario al Profilo
-- WinterBlockScreen: preview stat corrente→prevista per ogni disciplina
-  funzione estStatAfter(opt, nSlots) simula slot cumulativi correttamente
-- Morale V3: pureWinPct come driver principale, shift proporzionale al morale
-- Fix hook React: showRicalib/openTournKeys spostati a livello GameScreen
-- Fix weeksLeft +1: compensazione decremento immediato in advanceWeek
-- Log_flight: peso dimezzato, escluso dal dado puro, cooldown [8,14]
-- Fix crash FullCalendarViewer: week→currentWeek, horizonWeeks→weekData[wi-1].w
+--- SESS.48 ---
+- DrawScreen: sorteggio animato stile B con footer fisso
+  Seeded prima (220ms), non-seeded (110ms), sezione 32 slot per draw ≥64
+  Logica QF/SF corretta: stesso quarto=QF, stessa metà+quarto diverso=SF
+  Prop playerNat per bandiera giocatore. height:100vh per footer fisso.
+- BracketUpdateScreen: tabellone post-match obbligatorio con Salta
+  Sostituisce BracketTransition inline nel MatchScreen
+  Integrato nei 5 rami di handleMatchDone (sconfitta×2, titolo×2, vittoria interna)
+  bracketUpdateCallback.current per azione differita post-schermata
+- Rimosso pulsante 📋 (bracket viewer) dall'header MatchScreen
+- Pannello win% rimane visibile a fine match (rimossa condizione !result)
+- Rimosso riquadro "Log ultimo game" (lastEvent) dal MatchScreen
 
---- SESS.46 ---
-- PACCHETTO B — Personal Level Stagionale NPC:
-  npcPersonalLevel[id] dizionario globale persistente
-  initRank campo immutabile su ogni NPC
-  isNewYear: drift ±8-20%/anno per archetype con floor/ceiling ASSOLUTI di carriera
-    floor = atpPtsForRank(min(400, initRank×8))
-    ceiling = atpPtsForRank(max(1, initRank÷3))
-  MR punta a personalLevel invece di atpPtsForRank(rank)
-  Noise ridotto: ±0.3/0.6/1.0% (era ±0.6/1.0/1.4%)
-  MR top rank alzata: rank≤20 → 0.050 (era 0.020)
-  Phase 3b: NPC_FIXED_POOL costante (non ricalcolato dai rank post-riordino)
-  migrateWorldPool: aggiunge initRank se mancante nei save precedenti
-  Anno 1 quasi statico, mobilità crescente da anno 2+
-  Simulazione 8 anni: rank 2 Volatile → p10=rank1, med=rank3, p90=rank4, worst=rank10
-
---- SESS.47 ---
-- NAT_NAMES: pool da 10 a 20 nomi+cognomi per nazione (23 nazionalità)
-  Bug duplicato SRB corretto (sovrascriveva ROU)
-  genNameFromSeed(seed): genera nome da seed arbitrario — usato dai replacement NPC
-  generateReplacementNPC: usa genNameFromSeed(seed) invece di genNameForRank(rank)
-  Script riparazione save esistenti (rinomina tutti i replacement con nomi unici)
-- Gain allenamento +14-17%:
-  Serv/Drt/Rov/Vol: [0.07-0.15] → [0.08-0.17]
-  Vel/Res: [0.06-0.11] → [0.07-0.13]
-  Mentale: [0.04-0.09] → [0.05-0.10]
-- TrainBonus coach +15%:
-  Base: 1.40→1.61 · Esperto: 1.65→1.90 · Elite: 1.95→2.24
-  Progressione attesa: top 10 a età 25-26 con coach giusto e allenamento costante
-- Entry fee ribilanciate (analisi costo/prize completa):
-  30/80/300/1000/2700/6000/10000 (era 30/60/180/1200/2000/7000/12000)
-  Salto ChalA→ATP250: ×3.3 (era ×6.7) — molto più graduale
-  ATPFinals allineato ad ATP500 (2700)
-  Break-even con 3 staff stessa zona: T1 ATP250+ positivo, Slam T2
-- Fix getOppForRound: clamp da 400→500 — attinge agli NPC rank 401-500
-- Fix crash Anno completo: week→currentWeek in FullCalendarViewer
-- Fix filtri calendario crash: cap 8 tornei/sett con nessun filtro attivo
+--- SESS.49 ---
+- ATP250 rankCeiling: 100 → 60 (rank 61-100 accede ad ATP250)
+- Fix log_flight frequenza: gate 3.5%/1.5% prima del weighted sample
+- Volo privato: pulsante nel banner blockZoneChange, costo per rank
+- Tabella soglie tornei: pannello collassabile nel calendario con 3 stati
+- Modalità Leggenda: NPC età cristallizzata, selezionabile alla creazione
+- Anno reale 2025+(year-1): visualizzato in tutta la UI al posto di "Anno X"
+- Import salvataggio alla schermata iniziale (con e senza save esistente)
+- Fix Safari iOS: React production.min, crossorigin, data-presets="react,env"
+- Fix JSX fragment orfano (</div> ridondante dopo rimozione lastEvent)
 
 ═══════════════════════════════════════════════════════════
 FEATURE NON IMPLEMENTATE / ROADMAP
 ═══════════════════════════════════════════════════════════
 
+- Schermata viaggio arricchita (fase 2 "atmosfera torneo")
+- Schermata benvenuto torneo (fase 3 "atmosfera torneo")
 - Schermata vittoria cinematografica · Momentum bar · Telecronaca
-- Tema chiaro/scuro · Stili avversari · Wild card
+- Tema chiaro/scuro · Stili avversari · Wild card ATP250
 - Compressione mid-table NPC (rank 5-10 guadagnano, rank 20-100 perdono):
   proposta: alzare NPC_PTS_MULT per ATP250/ATP500 specificamente
   → pendente test su save fresco
@@ -295,10 +305,10 @@ ISTRUZIONI PER NUOVA SESSIONE
 3. SEMPRE lavorare da /mnt/user-data/outputs/ATP_Career-4.html
 4. Leggere PRASSI OPERATIVE e BUG RISOLTI prima di modificare
 5. Usare Python per sostituzioni su blocchi JSX con caratteri speciali
-6. ULTIMA SESSIONE (47):
-   - Entry fee ribilanciate: 30/80/300/1000/2700/6000/10000
-   - Gain allenamento +14-17%, trainBonus coach +15%
-   - NAT_NAMES a 20 nomi per pool, genNameFromSeed per replacement
-   - Fix crash Anno completo (week→currentWeek)
-   - Fix filtri calendario combinabili + cap 8 tornei nessun filtro
-   - Pacchetto B NPC personalLevel con floor/ceiling assoluti di carriera
+6. ULTIMA SESSIONE (49):
+   - ATP250 ceiling 60, log_flight fix frequenza, volo privato
+   - Tabella soglie tornei nel calendario
+   - Modalità Leggenda (gameMode: classic/legend)
+   - Anno reale 2025+(year-1) in tutta la UI
+   - Import save alla schermata iniziale
+   - Fix Safari iOS (React production + crossorigin + data-presets)

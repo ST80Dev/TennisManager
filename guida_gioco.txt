@@ -1,5 +1,5 @@
 # ATP CAREER MANAGER — GUIDA AL GIOCO
-# Aggiornato: Marzo 2026 (sessione 42)
+# Aggiornato: Aprile 2026 (sessione 49)
 
 ═══════════════════════════════════════════════════════════
 COS'E' QUESTO GIOCO
@@ -19,8 +19,9 @@ CREAZIONE DEL PERSONAGGIO
 ═══════════════════════════════════════════════════════════
 
 Scegli nome, nazionalita (determina la zona geografica di partenza),
-ETA' DI INIZIO e uno stile di gioco tra quattro archetipi:
+ETA' DI INIZIO, uno stile di gioco e la MODALITA' DI GIOCO.
 
+ARCHETIPI DI GIOCO:
   Baseliner       — resistenza e fondo campo, ideale su terra rossa
   Serve & Volley  — servizio e rete, ideale su erba
   All-Rounder     — equilibrato, mentale alto, versatile
@@ -33,10 +34,22 @@ ETA' DI INIZIO — cinque profili di carriera:
   18 anni  Profilo Standard  — 40 pts ATP · 5.750€ · +6pt stat (56pt)
   19 anni  Carriera Avviata  — 81 pts ATP · 7.000€ · +8pt stat (58pt)
 
-  A 15 anni sei fuori classifica (rank ">400"), puoi giocare solo Challenger B.
-  A 19 anni parti gia' a rank ~350, con accesso anche ai Challenger A da subito.
-  Ogni anno in piu' aggiunge punti bonus alle stat distribuiti proporzionalmente
-  sulle caratteristiche dell'archetipo scelto.
+MODALITA' DI GIOCO:
+  ⏳ Classica — Gli NPC invecchiano stagione dopo stagione e si ritirano
+    quando raggiungono l'eta' limite. Il circuito si rinnova nel tempo:
+    dopo anni potresti non trovare piu' Sinner o Alcaraz ai vertici.
+    La modalita' piu' realistica.
+
+  ⭐ Leggenda — Gli NPC rimangono per sempre ai livelli attuali.
+    Eta' cristallizzata: nessun decay fisico, nessun ritiro.
+    Potrai sfidare Sinner e Alcaraz anche nell'anno 2035 della tua carriera,
+    agli stessi livelli di oggi. Il TUO giocatore invecchia normalmente.
+    Ideale per chi vuole mantenere il fascino di sfidare i top attuali.
+
+ANNO DI CARRIERA:
+  Il gioco mostra l'anno reale: Anno 1 = 2025, Anno 2 = 2026, ecc.
+  Vedrai "2025 · Sett. 1", "2034 · Sett. 12" ecc. nell'interfaccia.
+  In modalita' Leggenda, il badge "⭐ Leggenda" appare nell'header.
 
 Distribuisci i punti disponibili (50 + bonus eta') su 7 caratteristiche (1-35):
   Servizio · Dritto · Rovescio · Volee · Velocita · Resistenza · Mentale
@@ -94,6 +107,15 @@ il doppio (x2.00). Americas<->Asia e Americas<->Africa sono intercontinentali.
 Jet lag (fatica aggiuntiva all'arrivo):
   Stessa zona: +0%  |  Zona vicina: +12%  |  Intercontinentale: +17-22%
   Un fisioterapista Elite riduce il jet lag fino al 75%.
+
+VOLO BLOCCATO:
+  Occasionalmente (circa 1-2 volte a stagione) un evento logistico puo'
+  bloccare i tuoi spostamenti tra zone per qualche settimana.
+  Se scatta un "Volo cancellato", puoi comunque giocare nella tua zona attuale.
+  Per rank ≤200: e' disponibile l'opzione "Volo privato" a pagamento
+  per sbloccare immediatamente gli spostamenti. Il costo scala per rank:
+    Rank 1-30: €8.000 · Rank 31-60: €6.000 · Rank 61-100: €4.500
+    Rank 101-150: €3.000 · Rank 151-200: €2.000 · Rank >200: non disponibile
 
 ═══════════════════════════════════════════════════════════
 I COSTI DI PARTECIPAZIONE A UN TORNEO
@@ -173,40 +195,120 @@ SPONSOR
 LE CARATTERISTICHE E LA PROGRESSIONE
 ═══════════════════════════════════════════════════════════
 
-7 CARATTERISTICHE (scala 1-35):
-  Servizio    — prima di copertura, ace e punti diretti
-  Dritto      — colpo offensivo da fondo campo
-  Rovescio    — stabilita' e controllo in scambio
-  Volee       — gioco a rete, chiusura di punti
-  Velocita    — recuperi, palle corte, running shots
-  Resistenza  — performance costante su set lunghi e match duri
-  Mentale     — efficacia carte bonus, gestione momenti chiave
+Scala 1-35. Riferimento orientativo:
+  Top 1-5: ~32  |  Top 10: ~28  |  Top 50: ~20  |  Top 100: ~16
+  Rank 200: ~9.5  |  Rank 400: ~8.0
 
-SUPERFICIE:
-  Cemento  — equilibrio servizio + dritto
-  Terra    — resistenza + rovescio
-  Erba     — servizio + volee
+  (Le stat degli NPC sono calibrate sul rank, indipendentemente dai punti ATP.)
 
-  La superficie influenza direttamente la percentuale di vittoria.
-  Sfruttare le superfici favorite vale quanto avere 2-3 punti stat in piu'.
+La crescita e' lenta con rendimento decrescente. Specializzarsi su 3-4
+caratteristiche e' piu' efficace che allenare tutto uniformemente.
 
-ALLENAMENTO E GUADAGNO STAT:
-  Ogni slot di allenamento aggiunge 0.06-0.15 punti a una caratteristica.
-  Il Coach amplifica il guadagno fino a x1.95 (Elite).
-  La fatica alta (>40%) riduce la forza in partita del 25%.
+Gain settimanali per slot (senza coach):
+  Servizio/Dritto/Rovescio/Volee: +0.07/0.15pt
+  Velocita/Resistenza: +0.06/0.11pt  |  Focus Mentale: +0.04/0.09pt
+  Un coach amplifica fino a quasi il doppio (Elite: x1.95).
+
+La crescita richiede mesi di lavoro costante. Concentrando 4 slot su
+3 stat principali, in un anno (con 10 tornei) guadagni circa 5-7pt netti
+per stat allenata. Le stat non allenate decadono lentamente (trascurabile).
 
 ═══════════════════════════════════════════════════════════
-IL RANKING ATP
+LA FATICA
 ═══════════════════════════════════════════════════════════
 
-  I punti ATP si accumulano con i risultati nei tornei e scadono dopo 52
-  settimane (rolling year). Il rank riflette la posizione nella classifica
-  mondiale in tempo reale — ogni settimana viene ricalcolato.
+Scala 0-100. La penalita' alle prestazioni scatta solo sopra il 40%:
+  40%: nessuna penalita'  |  60%: -8%  |  80%: -17%  |  100%: -25%
 
-PUNTI PER RISULTATO:
-  Challenger A: T1 1 · Ott 4 · QF 8 · SF 25 · Fin 50 · Tit 90
-  Challenger B: T1 0 · Ott 2 · QF 4 · SF 12 · Fin 24 · Tit 44
-  ATP 250:      T1 2 · Ott 15 · QF 30 · SF 80 · Fin 150 · Tit 250
+Fonti di fatica:
+  Allenamento: Srv/Drt/Rov/Vol +11%/slot · Fitness/Res +14%/slot · Mentale +7%/slot
+  Match: +2-6% per set giocato (ridotto dalla Resistenza sopra 15)
+  Jet lag: +12% zona vicina · +17-22% intercontinentale
+
+Recupero:
+  Slot Riposo: -45% · Settimana libera: -3% · Pausa invernale: -8%/sett extra
+  Vittoria in torneo: -5% prima del match successivo
+  Fisioterapista: recupero extra ogni settimana (Base/Esperto/Elite)
+
+Il Preparatore Atletico riduce la fatica generata dagli allenamenti:
+  Base: -10% fatica per slot · Esperto: -20% · Elite: -30%
+
+═══════════════════════════════════════════════════════════
+IL MORALE
+═══════════════════════════════════════════════════════════
+
+Scala 0-100, influenza tutta la forza del giocatore:
+  Morale 100 -> forza x1.08  |  Morale 50 -> x1.00  |  Morale 0 -> x0.90
+
+Il morale e' asimmetrico: scendere sotto 50 penalizza piu' di quanto
+salire sopra 50 aiuti. Gestirlo sopra 50 e' importante.
+
+Variazioni tipiche:
+  +5 a +18 per vittoria (dipende da upset, turno, titolo)
+  -3/-4 per sconfitta (meno se arrivi tardi nel torneo)
+  -2/sett senza torneo (sotto 35: -1 · sotto 20: invariato)
+  -3/sett in rosso economicamente
+  +4 per slot riposo  |  +2/sett durante pausa invernale
+
+PROTEZIONI ANTI-SPIRALE:
+  Floor soft: morale non scende mai sotto 8.
+  Sconfitte fanno meno danni gia' sotto 30.
+  Morale sotto 35: penalita' gain allenamento -20%.
+  Fine stagione: ricalibra verso 50 (media pesata 60/40).
+
+═══════════════════════════════════════════════════════════
+I TORNEI E IL CALENDARIO
+═══════════════════════════════════════════════════════════
+
+CATEGORIE E ACCESSO:
+
+  Challenger B  — rank #250-450 · 15.000 prize · 44pts titolo
+                  Palestra iniziale: premi modesti, pochi punti ATP.
+
+  Challenger A  — rank #150-370 · 35.000 prize · 90pts titolo
+                  Primo circuito vero: punti ATP significativi da SF in su.
+
+  ZONA DI SCELTA rank #150-370: entrambi i Challenger accessibili.
+
+  ATP 250       — rank #60-315 · 120.000 prize · 250pts
+                  Accessibile anche a rank 61-100 (non solo fino a 100).
+  ATP 500       — rank <= 150 · 180.000 prize · 500pts
+  Masters 1000  — rank <= 100 · 300.000 prize · 1000pts
+  Grand Slam    — rank <= 104 · 700.000 prize · 2000pts
+
+  SOGLIE DI CARRIERA SIGNIFICATIVE:
+    Fuori cls (0-4 pts):   solo ITF accessibili
+    Rank ~480 (12 pts):    accesso regolare Challenger B
+    Rank ~350 (81 pts):    accesso Challenger A aperto
+    Rank 315:              accesso ATP 250 — primo torneo del circuito principale
+    Rank 150:              accesso ATP 500 — prize money quasi triplo
+    Rank 100:              accesso Masters 1000 — elite del circuito
+    Rank 60:               ceiling ATP 250 — puoi ancora giocare ATP 250
+    Rank  50:              sponsor premium disponibili
+    Rank  20:              seed fisso negli Slam, Top 20 mondiale
+
+  TABELLA SOGLIE NEL CALENDARIO:
+    Il calendario mostra un pannello collassabile "🏆 Soglie accesso tornei"
+    con tutte le fasce dinamiche. I tier sono colorati in base al tuo rank:
+    ✓ verde = accessibile ora · ~ giallo = entro 15 rank · — grigio = non disponibile
+    Funziona in entrambe le direzioni: utile anche se stai perdendo rank
+    per capire cosa tornerai a poter giocare scendendo di posizione.
+
+TRAPPOLA ROLLING POINTS (rank 60-100):
+  I punti ATP durano 52 settimane esatte. Quando sali da rank ~200 a rank ~100
+  grazie a SF/Finali/Titoli negli ATP250, l'anno dopo devi DIFENDERE quei punti.
+  Se nel frattempo sei salito oltre rank 60 e non puoi piu' giocare ATP250,
+  i punti scadono senza rimpiazzo — il ranking scende.
+  Soluzione: fino a rank 60 puoi ancora giocare ATP250 per difendere i tuoi punti
+  mentre costruisci le abilita' per fare risultati negli ATP500/M1000.
+
+PUNTI ATP — STRUTTURA:
+  Challenger A:  T1 1 · Ott 4 · QF 8 · SF 25 · Fin 50 · Tit 90
+  Challenger B:  T1 0 · Ott 2 · QF 4 · SF 12 · Fin 24 · Tit 44
+  ATP 250:       T1 2 · Ott 15 · QF 30 · SF 80 · Fin 150 · Tit 250
+  ATP 500:       T1 5 · Ott 20 · QF 45 · SF 90 · Fin 160 · Tit 300 (+ finale)
+  Masters 1000:  T1 10 · Ott 45 · QF 90 · SF 180 · Fin 360 · Tit 600 (+ finale)
+  Grand Slam:    T1 10 · T2 45 · Ott 90 · QF 180 · SF 360 · Fin 720 · Tit 1200 (+ finale)
 
 PREMI IN DENARO:
   Challenger B:  T1 300 · Ott 795 · QF 1.600 · SF 2.500 · Fin 3.300 · Tit 7.500
@@ -225,9 +327,24 @@ PUNTI ROLLING 52 SETTIMANE:
 CALENDARIO:
   4 Grand Slam: Australian Open (s2-3) · Roland Garros (s20-21)
                 Wimbledon (s24-25) · US Open (s31-32)
-  9 Masters 1000 distribuiti tra Americas, Europa, Asia-Pacifico.
-  ATP250 presenti in tutte e 4 le zone durante tutta la stagione.
   Pausa invernale: sett 42-51.
+  12 Challenger A per zona (48 totali), ~19 Challenger B per zona (79 totali).
+
+═══════════════════════════════════════════════════════════
+IL SORTEGGIO E IL TABELLONE
+═══════════════════════════════════════════════════════════
+
+All'inizio di ogni torneo viene mostrato il sorteggio animato:
+  Le teste di serie appaiono prima nei loro slot fissi, poi i non-seedati.
+  Il footer mostra sempre il tuo avversario al primo turno e i possibili
+  avversari ai Quarti di Finale e in Semifinale.
+  Per draw grandi (64+) vedi solo la sezione da 32 slot intorno a te.
+  Premi "Salta" per saltare l'animazione, "Al primo turno" per iniziare.
+
+Dopo ogni match vinto (o a fine torneo) appare il tabellone aggiornato:
+  Mostra i risultati del turno appena completato con ✓/✗ per ogni match.
+  Se hai vinto, indica chi incontrerai al turno successivo.
+  Se il torneo e' finito, mostra una schermata celebrativa o di saluto.
 
 ═══════════════════════════════════════════════════════════
 LA PAUSA INVERNALE (sett. 42-51) — BLOCCO CONDENSATO
@@ -256,10 +373,10 @@ ANALISI PRE-MATCH (pannello LIVE):
   Prima del primo game vedi il pannello espanso con:
   - Probabilita' di vittoria teorica (%)
   - Barra colorata verde/arancio/rosso
-  - Avversario con flag nazionale e rank
+  - Avversario con rank
   - Lista bonus/malus attivi (coach, morale, fatica, superficie, eventi)
-  Durante la partita il pannello rimane visibile in forma compatta
-  con win% aggiornata e badge degli eventi attivi se presenti.
+  Il pannello rimane visibile anche a fine match — utile per capire
+  perche' hai vinto o perso in termini di probabilita' teorica.
 
 BADGE TURNO:
   T1/T2/Ottavi -> grigio  |  Quarti -> viola  |  Semifinale/Finale -> arancione
@@ -306,9 +423,7 @@ CATEGORIE:
   Colore (grigio)      — eventi narrativi senza effetto gameplay
 
 COME FUNZIONANO:
-  - Appaiono come schermata overlay a tutto schermo al momento dell'evento,
-    interrompendo il flusso per mostrare icona, testo e effetti attivi.
-    Premi il bottone di chiusura per tornare al calendario.
+  - Appaiono come schermata overlay a tutto schermo al momento dell'evento.
   - Gli effetti attivi sono visibili nel riepilogo settimanale (riga colorata)
     e nel pannello analisi pre-match.
   - Non piu' di 2 eventi attivi contemporaneamente, di categorie diverse.
@@ -322,8 +437,17 @@ STAFF E EVENTI:
 TICKER IN HEADER:
   Il banner scorrevole in alto mostra gli ultimi eventi e informazioni
   contestuali sulla carriera: trend ranking, punti da difendere,
-  tornei importanti in avvicinamento, milestone raggiunte.
-  Gli eventi scaduti appaiono con ✓ colorata — restano visibili come diario.
+  tornei importanti in avvicino, milestone raggiunte e molto altro.
+
+═══════════════════════════════════════════════════════════
+SALVATAGGIO E RIPRISTINO
+═══════════════════════════════════════════════════════════
+
+Il gioco si salva automaticamente nel browser a ogni settimana.
+Per portare la partita su un altro dispositivo:
+  Profilo → "Esporta salvataggio" → scarica il file .json
+  Sul nuovo dispositivo: schermata iniziale → "Importa salvataggio"
+  (disponibile sia con save esistente che senza)
 
 ═══════════════════════════════════════════════════════════
 CONSIGLI PER INIZIARE
@@ -348,10 +472,10 @@ CONSIGLI PER INIZIARE
   Non scoraggiarti se vinci T1 e Ottavi senza scalare il ranking —
   e' normale. La semifinale e' il vero spartiacque.
 
-· Quando arrivi intorno a rank #370 (oppure ~55 pts) inizia a guardare
-  i Challenger A: premi quasi tripli rispetto al Challenger B.
+· Quando arrivi intorno a rank #370 inizia a guardare i Challenger A:
+  premi quasi tripli rispetto al Challenger B.
 
-· Nella fascia 330-370 (55-100 pts) puoi scegliere tra Challenger A e Challenger B.
+· Nella fascia 330-370 puoi scegliere tra Challenger A e Challenger B.
   ChalA ha montepremi piu' alti ma draw piu' difficili.
 
 · Se parti a 15 anni (0 pts), i primi tornei saranno tutti Challenger B.
@@ -377,9 +501,12 @@ CONSIGLI PER INIZIARE
 
 · Dal terzo anno aspettati eventi imprevisti — fanno parte del gioco.
   Il fisioterapista e il mental coach ne riducono la durata.
-  Leggi i banner nel calendario: contengono informazioni utili sulla carriera.
 
-· Il calendario e' distribuito in tutte e 4 le zone per tutta la stagione.
-  Non c'e' mai un gap lungo senza opzioni — ogni zona ha ATP250 o Challenger
-  quasi ogni settimana. Pianifica i viaggi intercontinentali con attenzione
-  ai costi: un ATP250 lontano costa di piu' ma vale molti piu' punti.
+· Usa la tabella "Soglie accesso tornei" nel calendario per pianificare:
+  se il tuo rank sta salendo, vedi in anticipo quando perderai l'accesso
+  all'ATP250 (rank 60). Se sta scendendo, sai quando tornerai a poterlo giocare.
+
+· In modalita' Leggenda, gli avversari non cambieranno mai — potrai
+  confrontarti con gli stessi top player per tutta la carriera.
+  In modalita' Classica, il circuito si rinnova: dopo anni di carriera
+  incontrerai nuove generazioni di giocatori.
