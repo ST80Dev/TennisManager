@@ -28,11 +28,11 @@ ARCHETIPI DI GIOCO:
   Attaccante      — dritto devastante, aggressivo da fondo
 
 ETA' DI INIZIO — cinque profili di carriera:
-  15 anni  Talento Precoce   — 0 pts ATP · 2.500€ · stat base (50pt)
-  16 anni  Giovane Promessa  — 12 pts ATP · 3.500€ · +2pt stat (52pt)
-  17 anni  Esordiente        — 26 pts ATP · 4.500€ · +4pt stat (54pt)  [default]
-  18 anni  Profilo Standard  — 40 pts ATP · 5.750€ · +6pt stat (56pt)
-  19 anni  Carriera Avviata  — 81 pts ATP · 7.000€ · +8pt stat (58pt)
+  15 anni  Talento Precoce   — 0 pts ATP · 1.800€ · 35pt stat
+  16 anni  Giovane Promessa  — 12 pts ATP · 2.400€ · 42pt stat
+  17 anni  Esordiente        — 26 pts ATP · 3.200€ · 50pt stat  [default]
+  18 anni  Profilo Standard  — 40 pts ATP · 4.000€ · 55pt stat
+  19 anni  Carriera Avviata  — 81 pts ATP · 5.000€ · 60pt stat
 
 MODALITA' DI GIOCO:
   ⏳ Classica — Gli NPC invecchiano stagione dopo stagione e si ritirano
@@ -51,7 +51,7 @@ ANNO DI CARRIERA:
   Vedrai "2025 · Sett. 1", "2034 · Sett. 12" ecc. nell'interfaccia.
   In modalita' Leggenda, il badge "⭐ Leggenda" appare nell'header.
 
-Distribuisci i punti disponibili (50 + bonus eta') su 7 caratteristiche (1-35):
+Distribuisci i punti disponibili (da 35 a 60 in base all'eta') su 7 caratteristiche (1-35):
   Servizio · Dritto · Rovescio · Volee · Velocita · Resistenza · Mentale
 
 ═══════════════════════════════════════════════════════════
@@ -93,15 +93,15 @@ TRASFERIMENTI E JET LAG
 Il mondo e' diviso in 4 zone: Europa · Americas · Asia-Pacifico · Africa-MO
 
 Costi di viaggio per tipo torneo (zona stessa / vicina / intercontinentale):
-  Challenger B:  210  /  840   / 1.400
-  Challenger A:  150  /  600   / 1.000
-  ATP 250:       360  /  1.440 / 2.400
-  ATP 500:       600  /  2.400 / 4.000
-  Masters 1000: 1.200 /  4.800 / 8.000
-  Grand Slam:   2.400 /  9.600 / 16.000
+  Challenger B:  114  /    380 /   760
+  Challenger A:  165  /    550 / 1.100
+  ATP 250:       360  /  1.200 / 2.400
+  ATP 500:       600  /  2.000 / 4.000
+  Masters 1000: 1.200 /  4.000 / 8.000
+  Grand Slam:   2.400 /  8.000 / 16.000
 
 Anche i tornei nella stessa zona hanno un costo locale (30% della base).
-Le zone "vicine" costano il 20% in piu' (x1.20), le intercontinentali
+Le zone "vicine" pagano il costo base pieno (x1.00), le intercontinentali
 il doppio (x2.00). Americas<->Asia e Americas<->Africa sono intercontinentali.
 
 Jet lag (fatica aggiuntiva all'arrivo):
@@ -128,17 +128,17 @@ Ogni torneo ha tre costi immediati, visibili nella schermata di conferma:
   Alloggio     — soggiorno per te + quota per ogni collaboratore
 
   Entry fee per categoria:
-    Challenger B 75 · Challenger A 150 · ATP250 400
-    ATP500 1.200 · M1000 3.500 · Slam 8.000
+    Challenger B 80 · Challenger A 300 · ATP250 1.000
+    ATP500 2.700 · M1000 6.000 · Slam 10.000
 
   Alloggio (giocatore + per collaboratore):
     Challenger B 75 + 20/collab · Challenger A 100 + 40/collab
-    ATP250 200 + 70/collab · ATP500 500 + 150/collab
-    M1000 1.200 + 350/collab · Slam 2.500 + 700/collab
+    ATP250 400 + 70/collab · ATP500 1.000 + 150/collab
+    M1000 2.500 + 350/collab · Slam 5.000 + 700/collab
 
 Regola pratica Challenger B senza staff (zona locale):
-  Costo totale 360 (viaggio 210 + entry 75 + lodge 75).
-  T1 paga 300 — copre l'83% dei costi. Pareggi dalle Ottavi (795).
+  Costo totale 269 (viaggio 114 + entry 80 + lodge 75).
+  T1 paga 300 — copre il 111% dei costi. Pareggi gia' al T1.
 
 La schermata mostra anche il patrimonio dopo l'entrata e il turno minimo
 per pareggiare le spese.
@@ -205,9 +205,9 @@ La crescita e' lenta con rendimento decrescente. Specializzarsi su 3-4
 caratteristiche e' piu' efficace che allenare tutto uniformemente.
 
 Gain settimanali per slot (senza coach):
-  Servizio/Dritto/Rovescio/Volee: +0.07/0.15pt
-  Velocita/Resistenza: +0.06/0.11pt  |  Focus Mentale: +0.04/0.09pt
-  Un coach amplifica fino a quasi il doppio (Elite: x1.95).
+  Servizio/Dritto/Rovescio/Volee: +0.08/0.17pt
+  Velocita/Resistenza: +0.07/0.13pt  |  Focus Mentale: +0.05/0.10pt
+  Un coach amplifica fino a oltre il doppio (Elite: x2.24).
 
 La crescita richiede mesi di lavoro costante. Concentrando 4 slot su
 3 stat principali, in un anno (con 10 tornei) guadagni circa 5-7pt netti
@@ -238,10 +238,10 @@ IL MORALE
 ═══════════════════════════════════════════════════════════
 
 Scala 0-100, influenza tutta la forza del giocatore:
-  Morale 100 -> forza x1.08  |  Morale 50 -> x1.00  |  Morale 0 -> x0.90
+  Morale 100 -> forza x1.05  |  Morale 50 -> x1.00  |  Morale 0 -> x0.94
 
-Il morale e' asimmetrico: scendere sotto 50 penalizza piu' di quanto
-salire sopra 50 aiuti. Gestirlo sopra 50 e' importante.
+Il morale e' asimmetrico: sotto 50 il coefficiente e' x0.06 (max -6%),
+sopra 50 e' x0.05 (max +5%). Gestirlo sopra 50 e' importante.
 
 Variazioni tipiche:
   +5 a +18 per vittoria (dipende da upset, turno, titolo)
@@ -390,7 +390,7 @@ CARTE BONUS (3 per partita):
 LO STAFF TECNICO (5 ruoli, 3 livelli)
 ═══════════════════════════════════════════════════════════
 
-  Coach Tecnico     — gain allenamento +40/65/95% · bonus forza in match +1.5/3/5%
+  Coach Tecnico     — gain allenamento +61/90/124% · bonus forza in match +1.5/3/5%
   Preparatore       — fatica allenamento -10/20/30% per slot
   Mental Coach      — efficacia carte bonus +50/80/120% · riduce durata crisi mentali
   Sparring Partner  — +stat casuale/sett automatica (solo rank <=250)
@@ -453,7 +453,7 @@ Per portare la partita su un altro dispositivo:
 CONSIGLI PER INIZIARE
 ═══════════════════════════════════════════════════════════
 
-· Il budget dipende dall'eta' scelta: da 2.500€ (15 anni) a 7.000€ (19 anni).
+· Il budget dipende dall'eta' scelta: da 1.800€ (15 anni) a 5.000€ (19 anni).
   Il costo di vita e' 55/sett fuori classifica. Lo sponsor e' quasi necessario
   per sopravvivere al primo anno, specie se parti a 15 anni.
 
@@ -463,8 +463,8 @@ CONSIGLI PER INIZIARE
 · Considera subito uno sponsor: apri la schermata e valuta le offerte.
   Il Cauto e' sempre il piu' sicuro per il primo contratto.
 
-· Il costo del Challenger B locale e' 360 euro totali. Il T1 paga 300
-  (copre l'83%) — quasi in pareggio. Ogni zona ha Challenger ogni 1-2 settimane.
+· Il costo del Challenger B locale e' 269 euro totali. Il T1 paga 300
+  (copre il 111%) — gia' in attivo. Ogni zona ha Challenger ogni 1-2 settimane.
 
 · Il ciclo 4 allenamenti + 1 riposo e' il piu' efficiente.
 

@@ -1,13 +1,13 @@
 # ATP CAREER MANAGER — NOTE DI PROGETTO
 # Aggiornato: Aprile 2026 (sessioni 48-49)
-# Da allegare insieme ad ATP_Career-4.html all'inizio di ogni nuova sessione
+# Da allegare insieme ad index.html all'inizio di ogni nuova sessione
 
 ═══════════════════════════════════════════════════════════
 PRASSI OPERATIVE — LEGGERE PRIMA DI TUTTO
 ═══════════════════════════════════════════════════════════
 
 1. PRIMA DI MODIFICARE: leggere BUG RISOLTI per evitare regressioni.
-2. LAVORARE SEMPRE DAL FILE /mnt/user-data/outputs/ATP_Career-4.html
+2. LAVORARE SEMPRE DAL FILE /mnt/user-data/outputs/index.html
    (NON dal file sorgente /mnt/project/ che è la versione originale)
 3. VERIFICA: dopo ogni patch, node -e "..." per confermare parentesi + grep.
 4. DOPO OGNI PACCHETTO SOSTANZIALE: aggiornare note_progetto.txt
@@ -30,7 +30,7 @@ DESCRIZIONE DEL PROGETTO
 Gioco browser single-file (HTML + React inline + Babel) di gestione carriera
 tennistica ATP. Nessun server, nessuna dipendenza esterna, file unico.
 Salvataggio: localStorage (chiave "atp_career_v3").
-File attivo: ATP_Career-4.html (~8200+ righe)
+File attivo: index.html
 
 ═══════════════════════════════════════════════════════════
 STACK TECNICO
@@ -101,11 +101,11 @@ COSTI DI PARTECIPAZIONE:
   ENTRY_FEE:    ITF:30 · ChalB:80 · ChalA:300 · ATP250:1000 · ATP500:2700
                 ATPFinals:2700 · M1000:6000 · Slam:10000
   LODGE_BASE:   ITF:50 · ChalB:75 · ChalA:100 · ATP250:400 · ATP500:1000
-                M1000:2500 · Slam:5000
+                ATPFinals:1000 · M1000:2500 · Slam:5000
   LODGE_COLLAB: ITF:10 · ChalB:20 · ChalA:40 · ATP250:70 · ATP500:150
                 M1000:350 · Slam:700
   TRAVEL_BASE:  ITF:200 · ChalB:380 · ChalA:550 · ATP250:1200
-                ATP500:2000 · M1000:4000 · Slam:8000
+                ATP500:2000 · ATPFinals:2000 · M1000:4000 · Slam:8000
   Zone mult:    stessa=0.30 · adiacente=1.00 · intercontinentale=2.00
 
 STAFF_LEVELS (5 ruoli, 3 livelli):
@@ -125,7 +125,7 @@ TRAINING GAIN (aggiornati sess.47):
   trainBonus: none=1.0, base=1.61, esperto=1.90, elite=2.24
 
 BUDGET INIZIALE PER ETÀ:
-  15:2500€ · 16:3500€ · 17:4500€ · 18:5750€ · 19:7000€
+  15:1800€ · 16:2400€ · 17:3200€ · 18:4000€ · 19:5000€
   Punti ATP iniziali: 15=0 · 16=12 · 17=26 · 18=40 · 19=81
   Pool stat iniziale: 15=35pt · 16=42 · 17=50 · 18=55 · 19=60
 
@@ -300,9 +300,9 @@ FEATURE NON IMPLEMENTATE / ROADMAP
 ISTRUZIONI PER NUOVA SESSIONE
 ═══════════════════════════════════════════════════════════
 
-1. Allega note_progetto.txt + ATP_Career-4.html (da /mnt/user-data/outputs/)
+1. Allega note_progetto.txt + index.html (da /mnt/user-data/outputs/)
 2. "Riprendi il progetto ATP Career Manager dalle note allegate"
-3. SEMPRE lavorare da /mnt/user-data/outputs/ATP_Career-4.html
+3. SEMPRE lavorare da /mnt/user-data/outputs/index.html
 4. Leggere PRASSI OPERATIVE e BUG RISOLTI prima di modificare
 5. Usare Python per sostituzioni su blocchi JSX con caratteri speciali
 6. ULTIMA SESSIONE (49):
