@@ -4287,6 +4287,15 @@ function TrainingScreen({player,staff,onTrain,onFinish,trainCount,week,morale}){
   const canRest=slotsLeft>0;
   const canTrain=canDoStat||canRest;
 
+  const prevTrainCount=React.useRef(trainCount);
+  React.useEffect(()=>{
+    if(trainCount>prevTrainCount.current&&trainCount>=slotsMax){
+      const t=setTimeout(()=>onFinish(),600);
+      return()=>clearTimeout(t);
+    }
+    prevTrainCount.current=trainCount;
+  },[trainCount,slotsMax,onFinish]);
+
   function doTrain(){
     if(!chosen||!canTrain)return;
     onTrain(chosen);
@@ -4391,11 +4400,6 @@ function TrainingScreen({player,staff,onTrain,onFinish,trainCount,week,morale}){
         </button>
       )}
 
-      {/* Pulsante concludi settimana */}
-      <button onClick={onFinish}
-        style={{width:"100%",background:"linear-gradient(90deg,#10b981,#059669)",border:"none",borderRadius:12,padding:14,color:"#fff",fontWeight:"bold",fontSize:15,cursor:"pointer"}}>
-        {"✅ Concludi allenamenti →"}
-      </button>
     </div>
   );
 }
