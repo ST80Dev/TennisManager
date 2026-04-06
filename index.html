@@ -5615,6 +5615,39 @@ function GameScreen({gs}){
     }
   },[]);// eslint-disable-line
 
+  // ── MIGRATION: ricostruisce careerStats da history per save senza accumulatore ──
+  useEffect(()=>{
+    if(player&&(!player.careerStats||Object.keys(player.careerStats).length===0)){
+      const hist=player.history||[];
+      if(hist.length===0)return;
+      const RRANK={"Turno 1":0,"Turno 2":1,"Sedicesimi di Finale":0,"Ottavi di Finale":2,"Quarti di Finale":3,"Semifinale":4,"Finale":5,"Titolo":6};
+      const cs={};
+      const byTourn={};
+      hist.forEach(h=>{
+        const cat=h.type;if(!cat)return;
+        if(!cs[cat])cs[cat]={wins:0,losses:0,titles:0,prize:0,pts:0,tourns:0,bestRound:0,bestCount:0,firstBestYear:0,firstBestWeek:0,firstBestName:""};
+        cs[cat].wins+=h.result==="V"?1:0;
+        cs[cat].losses+=h.result==="S"?1:0;
+        cs[cat].prize+=(h.prize||0);
+        cs[cat].pts+=(h.pts||0);
+        const key=h.tournament+"_A"+h.year+"S"+h.week;
+        if(!byTourn[key])byTourn[key]={cat,rounds:[],year:h.year,week:h.week,name:h.tournament};
+        byTourn[key].rounds.push(h);
+      });
+      Object.values(byTourn).forEach(t=>{
+        const c=cs[t.cat];if(!c)return;
+        c.tourns++;
+        const last=t.rounds[t.rounds.length-1];
+        const isTitle=last.result==="V"&&(RRANK[last.round]??0)>=5;
+        const rr=isTitle?6:(RRANK[last.round]??0);
+        if(isTitle)c.titles++;
+        if(rr>c.bestRound){c.bestRound=rr;c.bestCount=1;c.firstBestYear=t.year;c.firstBestWeek=t.week;c.firstBestName=t.name;}
+        else if(rr===c.bestRound)c.bestCount++;
+      });
+      setPlayer(p=>({...p,careerStats:cs}));
+    }
+  },[]);// eslint-disable-line
+
   useEffect(()=>{
     saveL({week,year,player,atpWorld:world,brackets,staff,activeTour,tourRound,weekDone,trainCount,morale,sponsor,winterDone,careerLog,activeEvents,consecutiveTournaments,consecutiveLosses,catCooldown,gameMode:gs.gameMode||"classic"});
   },[week,year,player,world,activeTour,tourRound,weekDone,staff]);
@@ -5986,6 +6019,27 @@ function GameScreen({gs}){
       const keepKeys=new Set(seen.slice(0,MAX_TOURN));
       return _histFull.filter(h=>keepKeys.has(h.tournament+"_A"+h.year+"S"+h.week));
     })();
+    // Accumula careerStats permanenti (non soggette al cap history)
+    const _cs={...(player.careerStats||{})};
+    const _catKey=activeTour.type;
+    if(!_cs[_catKey])_cs[_catKey]={wins:0,losses:0,titles:0,prize:0,pts:0,tourns:0,bestRound:0,firstBestYear:0,firstBestWeek:0,firstBestName:""};
+    const _RRANK={"Turno 1":0,"Turno 2":1,"Ottavi di Finale":2,"Sedicesimi di Finale":0,"Quarti di Finale":3,"Semifinale":4,"Finale":5,"Titolo":6};
+    const _roundName=getRoundName(r,totalRounds);
+    const _rr=_RRANK[_roundName]??0;
+    _cs[_catKey]={..._cs[_catKey],
+      wins:_cs[_catKey].wins+(won?1:0),
+      losses:_cs[_catKey].losses+(won?0:1),
+      prize:_cs[_catKey].prize+(isExit?prz:0),
+      pts:_cs[_catKey].pts+(isExit?pts:0),
+      tourns:_cs[_catKey].tourns+(isExit?1:0),
+    };
+    // Miglior turno: se è un titolo (vinto la finale), rr=6
+    const _exitRR=won&&isExit?6:(isExit?_rr:_rr);
+    if(_exitRR>_cs[_catKey].bestRound||_cs[_catKey].bestRound===0){
+      if(isExit){_cs[_catKey].bestRound=_exitRR;_cs[_catKey].bestCount=1;_cs[_catKey].firstBestYear=year;_cs[_catKey].firstBestWeek=week;_cs[_catKey].firstBestName=activeTour.name;}
+    } else if(_exitRR===_cs[_catKey].bestRound&&isExit){
+      _cs[_catKey].bestCount=(_cs[_catKey].bestCount||1)+1;
+    }
     const np={...player,
       wins:won?player.wins+1:player.wins,
       losses:won?player.losses:player.losses+1,
@@ -5993,7 +6047,8 @@ function GameScreen({gs}){
       atpPoints:isExit?(player.atpPoints||0)+pts:(player.atpPoints||0),
       rank:isExit?clamp(newRankFromPts,1,500):player.rank,
       fatigue:clamp((player.fatigue||0)+fatGain-roundRecovery,0,100),
-      history:_cappedHist
+      history:_cappedHist,
+      careerStats:_cs
     };
     // titles only at final (see below)
     // Update live bracket to mark player match as done
@@ -6086,7 +6141,10 @@ function GameScreen({gs}){
       }
     } else {
       if(nr>=totalRounds){
-        const npFinal={...np,titles:(np.titles||0)+1};
+        const _csT={...(np.careerStats||{})};
+        const _ckT=activeTour.type;
+        if(_csT[_ckT])_csT[_ckT]={..._csT[_ckT],titles:(_csT[_ckT].titles||0)+1};
+        const npFinal={...np,titles:(np.titles||0)+1,careerStats:_csT};
         setPlayer(npFinal);
         notify(`🏆 TITOLO! ${activeTour.name} — +€${fmt(prz)} · +${pts}pts`,"#f59e0b");
         // +5 titolo extra su nextMorale (che include già +20 da calcMoraleShift finale vinta)
@@ -7575,37 +7633,39 @@ function GameScreen({gs}){
           const CAT_LABEL={"Slam":"SLAM","M1000":"M1000","ATP500":"ATP500","ATP250":"ATP250","ChallengerA":"CHALL A","ChallengerB":"CHALL B","ITF":"ITF"};
           // Tab: "matches" | "stats" — histTab e' useState top-level
           // Aggregazione per categoria
+          const _cStats=player.careerStats||{};
+          const _RRANK_LABELS={0:"T1",1:"T2",2:"Ottavi",3:"Quarti",4:"Semifinale",5:"Finale",6:"Titolo"};
           const statsByCat=CATS.map(cat=>{
+            const cs=_cStats[cat];
+            if(cs&&cs.tourns>0){
+              // Usa dati accumulati permanenti
+              const tt2=TT[cat];
+              const bestRoundLabel=_RRANK_LABELS[cs.bestRound]||"–";
+              const firstBest=cs.firstBestYear?{year:cs.firstBestYear,week:cs.firstBestWeek,name:cs.firstBestName}:null;
+              return{cat,tt2,tourns_played:cs.tourns,wins:cs.wins,losses:cs.losses,titles:cs.titles||0,bestRoundLabel,bestCount:cs.bestCount||1,firstBest,totalPrize:cs.prize,totalPts:cs.pts};
+            }
+            // Fallback: ricalcola da history (save senza careerStats)
             const entries=hist.filter(h=>h.type===cat);
             if(entries.length===0)return null;
             const tt2=TT[cat];
-            // Turni per rank
             const tourns_played=new Set(entries.map(h=>h.tournament+"_A"+h.year+"S"+h.week)).size;
             const wins=entries.filter(h=>h.result==="V").length;
             const losses=entries.filter(h=>h.result==="S").length;
             const titles=entries.filter(h=>h.round==="Titolo"||h.round==="Finale"&&h.result==="V").length;
-            // Miglior turno raggiunto (tra tutte le partite VINTE o risultato finale del torneo)
-            // Usiamo il round dell'ultima partita di ogni torneo (se vinta = titolo, se persa = quel turno)
-            // Raggruppa per torneo-istanza
             const byTourn={};
             entries.forEach(h=>{
               const key=h.tournament+"_A"+h.year+"S"+h.week;
               if(!byTourn[key])byTourn[key]={rounds:[],year:h.year,week:h.week,name:h.tournament};
               byTourn[key].rounds.push(h);
             });
-            // Per ogni torneo: il turno più alto raggiunto
             const tournSummaries=Object.values(byTourn).map(t=>{
-              // Ultima partita giocata in quel torneo
               const last=t.rounds[t.rounds.length-1];
-              // Se la partita è vinta ed è una finale → titolo
               const roundLabel=last.result==="V"&&(last.round==="Finale"||rRank(last.round)>=5)?"Titolo":last.round;
               return{round:roundLabel,year:t.year,week:t.week,name:t.name,rr:rRank(roundLabel)};
             });
-            // Miglior turno
             const bestRR=Math.max(...tournSummaries.map(t=>t.rr));
             const bestRoundLabel=tournSummaries.find(t=>t.rr===bestRR)?.round||"–";
             const bestCount=tournSummaries.filter(t=>t.rr===bestRR).length;
-            // Prima volta che si è raggiunto il best round
             const firstBest=tournSummaries.filter(t=>t.rr===bestRR).sort((a,b)=>a.year!==b.year?a.year-b.year:a.week-b.week)[0];
             const totalPrize=entries.reduce((s,h)=>s+(h.prize||0),0);
             const totalPts=entries.reduce((s,h)=>s+(h.pts||0),0);
@@ -8241,7 +8301,7 @@ function App(){
     const startRank=startPts>0?rankForAtpPts(startPts):400;
     const state={week:1,year:1,brackets:{},activeTour:null,tourRound:0,weekDone:false,staff:{},morale:50,atpWorld:w,sponsor:null,
       gameMode:pd.gameMode||"classic",
-      player:{...pd,rank:startRank,atpPoints:startPts,money:budget,fatigue:0,age,wins:0,losses:0,titles:0,history:[],careerStartRank:startRank,bestRankEver:startRank,currentZone:(NATS.find(n=>n.c===pd.nationality)?.z||"Europa"),homeZone:(NATS.find(n=>n.c===pd.nationality)?.z||"Europa")}};
+      player:{...pd,rank:startRank,atpPoints:startPts,money:budget,fatigue:0,age,wins:0,losses:0,titles:0,history:[],careerStats:{},careerStartRank:startRank,bestRankEver:startRank,currentZone:(NATS.find(n=>n.c===pd.nationality)?.z||"Europa"),homeZone:(NATS.find(n=>n.c===pd.nationality)?.z||"Europa")}};
     saveL(state);setGs(state);setScreen("game");
   }
   function resume(){const s=loadL();if(s){const migratedWorld=migrateWorldPool(s.atpWorld||{});const migrated={...s,atpWorld:migratedWorld};saveL(migrated);setGs(migrated);setScreen("game");}}
