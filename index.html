@@ -3042,13 +3042,12 @@ function BracketUpdateScreen({bracket, playerName, completedRound, totalRounds, 
   const curRoundLabel=roundName(completedRound,totalRounds);
   const nextRoundLabel=!isTournEnd?roundName(completedRound+1,totalRounds):null;
 
-  // Mostra max 8 match del round completato, centrati sulla partita del giocatore
+  // Mostra il blocco di 8 match del ramo del giocatore (stessa sezione tabellone)
   const _allMatches=allRounds[completedRound]?.matches||[];
   const _playerIdx=_allMatches.findIndex(m=>m.isPlayerMatch||m.p1===playerName||m.p2===playerName);
-  const _half=4;
-  let _start=Math.max(0,(_playerIdx>=0?_playerIdx:0)-_half);
-  if(_start+8>_allMatches.length)_start=Math.max(0,_allMatches.length-8);
-  const roundMatches=_allMatches.slice(_start,_start+8);
+  const _blockSize=Math.min(8,_allMatches.length);
+  const _blockStart=_playerIdx>=0?Math.floor(_playerIdx/_blockSize)*_blockSize:0;
+  const roundMatches=_allMatches.slice(_blockStart,_blockStart+_blockSize);
   const getNatFlag=nat=>nat||"";
 
   const winCol="#10b981"; const loseCol="#ef4444"; const pendCol="#60a5fa";
