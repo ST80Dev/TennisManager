@@ -3069,102 +3069,105 @@ function BracketUpdateScreen({bracket, playerName, completedRound, totalRounds, 
         </div>
       </div>
 
-      <div style={{flex:1,overflowY:"auto",padding:"14px 18px 8px"}}>
+      <div style={{flex:1,overflowY:"auto",padding:"14px 14px 8px"}}>
 
-        {/* Risultati del round completato — visualizzazione bracket */}
+        {/* Risultati del round completato — visualizzazione bracket verticale */}
         <div style={{fontSize:11,fontWeight:800,color:"#334155",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>
           Risultati {curRoundLabel}
         </div>
-        <div style={{marginBottom:16,opacity:visible?1:0,transform:visible?"translateY(0)":"translateY(8px)",transition:"all 0.35s ease"}}>
+        <div style={{opacity:visible?1:0,transform:visible?"translateY(0)":"translateY(8px)",transition:"all 0.35s ease"}}>
           {(()=>{
-            // Raggruppa i match in coppie: i vincenti di ogni coppia si sfidano nel turno successivo
-            const pairs=[];
-            for(let p=0;p<roundMatches.length;p+=2){
-              pairs.push([roundMatches[p],roundMatches[p+1]].filter(Boolean));
-            }
-            // Raggruppa le coppie in quarti (gruppi di 4 match = 2 coppie)
-            const quads=[];
-            for(let q=0;q<pairs.length;q+=2){
-              quads.push(pairs.slice(q,q+2));
-            }
-            const MatchRow=({m})=>{
-              const isP=m.p1===playerName||m.p2===playerName;
-              const w=m.winner;const p1w=w===m.p1;const p2w=w===m.p2;
+            // Costruisci lista di righe giocatore dal blocco di match
+            // Ogni match → 2 righe (p1, p2). Coppie di match collegate da connettori.
+            const rows=[];
+            roundMatches.forEach((m,mi)=>{
+              const w=m.winner;
+              [{name:m.p1,rank:m.p1r,nat:m.p1obj?.nat,isPlayer:m.p1===playerName,won:w===m.p1,hasResult:!!w},
+               {name:m.p2,rank:m.p2r,nat:m.p2obj?.nat,isPlayer:m.p2===playerName,won:w===m.p2,hasResult:!!w}].forEach((p,pi)=>{
+                rows.push({...p,matchIdx:mi,slotInMatch:pi,isPlayerMatch:m.p1===playerName||m.p2===playerName});
+              });
+            });
+            // Raggruppa in blocchi di 4 righe (= 2 match = 1 coppia bracket) e poi 8 righe (= 4 match = 1 quad)
+            const PlayerRow=({r,idx})=>{
+              const isMatchEnd=r.slotInMatch===1;
               return(
-                <div style={{background:isP?"rgba(59,130,246,0.08)":"rgba(255,255,255,0.02)",
-                  border:`1px solid ${isP?"#3b82f633":"#1e293b"}`,borderRadius:6,padding:"6px 8px"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:4}}>
-                    <span style={{flex:1,fontSize:12,fontWeight:m.p1===playerName?800:500,
-                      color:p1w?"#e2e8f0":"#475569",textDecoration:!p1w&&w?"line-through":"none",
-                      overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                      {m.p1obj?.nat&&<span style={{marginRight:3}}>{getNatFlag(m.p1obj?.nat)}</span>}
-                      {m.p1}{m.p1===playerName&&<span style={{fontSize:9,color:"#60a5fa",marginLeft:3}}>👤</span>}
-                    </span>
-                    <span style={{fontSize:9,color:"#334155",fontFamily:"'Rajdhani',sans-serif"}}>#{m.p1r}</span>
-                    <span style={{fontSize:9,color:"#1e3a5f",fontWeight:800,padding:"0 2px"}}>v</span>
-                    <span style={{fontSize:9,color:"#334155",fontFamily:"'Rajdhani',sans-serif"}}>#{m.p2r}</span>
-                    <span style={{flex:1,fontSize:12,fontWeight:m.p2===playerName?800:500,
-                      color:p2w?"#e2e8f0":"#475569",textDecoration:!p2w&&w?"line-through":"none",
-                      textAlign:"right",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                      {m.p2}{m.p2===playerName&&<span style={{fontSize:9,color:"#60a5fa",marginLeft:3}}>👤</span>}
-                      {m.p2obj?.nat&&<span style={{marginLeft:3}}>{getNatFlag(m.p2obj?.nat)}</span>}
-                    </span>
-                  </div>
+                <div style={{
+                  display:"flex",alignItems:"center",gap:6,
+                  padding:"5px 8px",borderRadius:6,
+                  background:r.isPlayer?"rgba(59,130,246,0.15)":r.isPlayerMatch?"rgba(59,130,246,0.05)":"rgba(255,255,255,0.02)",
+                  border:`1px solid ${r.isPlayer?"#3b82f666":r.isPlayerMatch?"#3b82f622":"transparent"}`,
+                  marginBottom:isMatchEnd?6:1,
+                }}>
+                  {r.nat&&<span style={{fontSize:12,flexShrink:0}}>{getNatFlag(r.nat)}</span>}
+                  <span style={{flex:1,fontSize:12,fontWeight:r.isPlayer?900:r.won?700:400,
+                    color:r.won?"#e2e8f0":r.hasResult?"#475569":"#94a3b8",
+                    textDecoration:!r.won&&r.hasResult?"line-through":"none",
+                    overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    {r.name}
+                    {r.isPlayer&&<span style={{fontSize:9,color:"#60a5fa",marginLeft:4}}>TU</span>}
+                  </span>
+                  <span style={{fontSize:12,color:r.won?"#94a3b8":"#334155",fontFamily:"'Rajdhani',sans-serif",fontWeight:800,flexShrink:0}}>
+                    #{r.rank}
+                  </span>
+                  {r.won&&<span style={{fontSize:9,color:winCol,fontWeight:900}}>W</span>}
                 </div>
               );
             };
-            // Linea bracket verticale con connettore
-            const BracketLine=({height,color})=>(
-              <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",width:14,minHeight:height||"100%"}}>
-                <div style={{width:2,flex:1,background:color||"#1e3a5f"}}/>
-              </div>
-            );
-            // Connettore orizzontale a destra di una coppia
-            const PairConnector=({hasPlayer})=>{
+            // Connettore coppia: collega 2 match (4 righe) con linea verticale + orizzontale
+            const PairConn=({hasPlayer})=>{
               const c=hasPlayer?"#3b82f6":"#1e3a5f";
               return(
-                <div style={{display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"flex-start",width:16,position:"relative"}}>
-                  <div style={{position:"absolute",top:"25%",bottom:"25%",left:0,width:2,background:c}}/>
+                <div style={{width:20,position:"relative",flexShrink:0}}>
+                  <div style={{position:"absolute",top:"12%",bottom:"12%",left:0,width:2,background:c}}/>
+                  <div style={{position:"absolute",top:"50%",left:0,width:14,height:2,background:c,transform:"translateY(-50%)"}}/>
+                </div>
+              );
+            };
+            // Connettore quad: collega 2 coppie (8 righe)
+            const QuadConn=({hasPlayer})=>{
+              const c=hasPlayer?"#3b82f688":"#1e3a5f55";
+              return(
+                <div style={{width:16,position:"relative",flexShrink:0}}>
+                  <div style={{position:"absolute",top:"12%",bottom:"12%",left:0,width:2,background:c}}/>
                   <div style={{position:"absolute",top:"50%",left:0,width:10,height:2,background:c,transform:"translateY(-50%)"}}/>
                 </div>
               );
             };
-            // Connettore per gruppo di 4 (collega le 2 coppie)
-            const QuadConnector=({hasPlayer})=>{
-              const c=hasPlayer?"#3b82f688":"#1e3a5f66";
-              return(
-                <div style={{display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"flex-start",width:14,position:"relative"}}>
-                  <div style={{position:"absolute",top:"25%",bottom:"25%",left:0,width:2,background:c}}/>
-                  <div style={{position:"absolute",top:"50%",left:0,width:8,height:2,background:c,transform:"translateY(-50%)"}}/>
-                </div>
-              );
-            };
+            // Raggruppa match in coppie (2 match) e quad (4 match)
+            const matchPairs=[];
+            for(let i=0;i<roundMatches.length;i+=2) matchPairs.push(roundMatches.slice(i,i+2));
+            const matchQuads=[];
+            for(let i=0;i<matchPairs.length;i+=2) matchQuads.push(matchPairs.slice(i,i+2));
+
             return(
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {quads.map((quad,qi)=>{
-                  const quadHasPlayer=quad.some(pair=>pair.some(m=>m.p1===playerName||m.p2===playerName));
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {matchQuads.map((quad,qi)=>{
+                  const quadHasP=quad.some(pair=>pair.some(m=>m.p1===playerName||m.p2===playerName));
                   return(
-                    <div key={qi} style={{display:"flex",alignItems:"stretch",gap:0,
-                      marginBottom:qi<quads.length-1?4:0}}>
-                      {/* Colonna match con connettori coppia */}
-                      <div style={{flex:1,display:"flex",flexDirection:"column",gap:0}}>
+                    <div key={qi} style={{display:"flex",alignItems:"stretch"}}>
+                      {/* Colonna match + connettori coppia */}
+                      <div style={{flex:1,display:"flex",flexDirection:"column"}}>
                         {quad.map((pair,pi)=>{
-                          const pairHasPlayer=pair.some(m=>m.p1===playerName||m.p2===playerName);
+                          const pairHasP=pair.some(m=>m.p1===playerName||m.p2===playerName);
                           return(
-                            <div key={pi} style={{display:"flex",alignItems:"stretch",
-                              marginBottom:pi<quad.length-1?4:0}}>
-                              <div style={{flex:1,display:"flex",flexDirection:"column",gap:3}}>
-                                {pair.map((m,mi)=><MatchRow key={mi} m={m}/>)}
+                            <div key={pi} style={{display:"flex",alignItems:"stretch",marginBottom:pi<quad.length-1?6:0}}>
+                              <div style={{flex:1}}>
+                                {pair.map((m,mi)=>{
+                                  const globalIdx=qi*4+pi*2+mi;
+                                  const w=m.winner;
+                                  const pRows=[
+                                    {name:m.p1,rank:m.p1r,nat:m.p1obj?.nat,isPlayer:m.p1===playerName,won:w===m.p1,hasResult:!!w,slotInMatch:0,isPlayerMatch:m.p1===playerName||m.p2===playerName},
+                                    {name:m.p2,rank:m.p2r,nat:m.p2obj?.nat,isPlayer:m.p2===playerName,won:w===m.p2,hasResult:!!w,slotInMatch:1,isPlayerMatch:m.p1===playerName||m.p2===playerName}
+                                  ];
+                                  return pRows.map((r,ri)=><PlayerRow key={`${globalIdx}_${ri}`} r={r} idx={globalIdx*2+ri}/>);
+                                })}
                               </div>
-                              {pair.length===2&&<PairConnector hasPlayer={pairHasPlayer}/>}
+                              {pair.length===2&&<PairConn hasPlayer={pairHasP}/>}
                             </div>
                           );
                         })}
                       </div>
-                      {/* Connettore quad: collega le 2 coppie */}
-                      {quad.length===2&&quad[0].length+quad[1].length>=3&&(
-                        <QuadConnector hasPlayer={quadHasPlayer}/>
-                      )}
+                      {quad.length===2&&<QuadConn hasPlayer={quadHasP}/>}
                     </div>
                   );
                 })}
@@ -3177,69 +3180,45 @@ function BracketUpdateScreen({bracket, playerName, completedRound, totalRounds, 
             </div>
           )}
         </div>
+      </div>
 
-        {/* Prossimo turno o fine torneo */}
+      {/* Footer fisso: info avversario + pulsante */}
+      <div style={{background:"#070f1d",borderTop:"1px solid #1e293b",padding:"12px 18px",flexShrink:0}}>
+        {/* Prossimo avversario */}
         {!isTournEnd&&nextOpp&&(
-          <div style={{opacity:visible?1:0,transform:visible?"translateY(0)":"translateY(8px)",
-            transition:"all 0.35s ease 0.15s"}}>
-            <div style={{fontSize:11,fontWeight:800,color:"#334155",letterSpacing:1.5,
-              textTransform:"uppercase",marginBottom:8}}>
-              {nextRoundLabel}
-            </div>
-            <div style={{background:"rgba(16,185,129,0.08)",border:"1px solid #10b98133",
-              borderRadius:10,padding:"12px 14px"}}>
-              <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:11,color:"#10b981",fontWeight:700,marginBottom:4}}>Il tuo prossimo match</div>
-                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
-                    <span style={{fontSize:10,color:"#60a5fa"}}>👤</span>
-                    <span style={{fontSize:14,fontWeight:900,color:"#e2e8f0"}}>{playerName}</span>
-                  </div>
-                  <div style={{fontSize:12,color:"#475569",fontWeight:600,marginBottom:4}}>VS</div>
-                  <div style={{display:"flex",alignItems:"center",gap:6}}>
-                    <span style={{fontSize:14,fontWeight:700,color:"#cbd5e1"}}>
-                      {getNatFlag(nextOpp.nat)&&<span style={{marginRight:4}}>{getNatFlag(nextOpp.nat)}</span>}
-                      {nextOpp.name}
-                    </span>
-                    <span style={{fontSize:12,color:"#475569",fontFamily:"'Rajdhani',sans-serif",fontWeight:700}}>#{nextOpp.rank}</span>
-                  </div>
-                </div>
-                <div style={{fontSize:32,opacity:0.6}}>🎾</div>
-              </div>
+          <div style={{background:"rgba(16,185,129,0.08)",border:"1px solid #10b98133",
+            borderRadius:10,padding:"10px 12px",marginBottom:10}}>
+            <div style={{fontSize:10,color:"#10b981",fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:1}}>{nextRoundLabel}</div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontSize:10,color:"#60a5fa"}}>👤</span>
+              <span style={{fontSize:13,fontWeight:900,color:"#e2e8f0"}}>{playerName}</span>
+              <span style={{fontSize:11,color:"#475569",fontWeight:700}}>VS</span>
+              <span style={{fontSize:13,fontWeight:700,color:"#cbd5e1"}}>
+                {getNatFlag(nextOpp.nat)&&<span style={{marginRight:3}}>{getNatFlag(nextOpp.nat)}</span>}
+                {nextOpp.name}
+              </span>
+              <span style={{fontSize:11,color:"#475569",fontFamily:"'Rajdhani',sans-serif",fontWeight:700}}>#{nextOpp.rank}</span>
             </div>
           </div>
         )}
-
         {/* Fine torneo */}
         {isTournEnd&&(
-          <div style={{textAlign:"center",padding:"20px 0",
-            opacity:visible?1:0,transition:"all 0.4s ease 0.1s"}}>
-            <div style={{fontSize:48,marginBottom:10}}>{won?"🏆":"🎾"}</div>
-            <div style={{fontSize:22,fontWeight:900,color:won?"#f59e0b":"#64748b",marginBottom:6}}>
+          <div style={{textAlign:"center",padding:"8px 0 10px"}}>
+            <div style={{fontSize:28,marginBottom:4}}>{won?"🏆":"🎾"}</div>
+            <div style={{fontSize:18,fontWeight:900,color:won?"#f59e0b":"#64748b",marginBottom:2}}>
               {won?"CAMPIONE!":"Torneo concluso"}
             </div>
-            <div style={{fontSize:14,color:"#475569"}}>
+            <div style={{fontSize:12,color:"#475569",marginBottom:4}}>
               {won?`Hai vinto ${tourName}!`:`Eliminato al ${curRoundLabel}`}
             </div>
           </div>
         )}
-      </div>
-
-      {/* Footer pulsante */}
-      <div style={{background:"#070f1d",borderTop:"1px solid #1e293b",padding:"14px 18px",flexShrink:0}}>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={onContinue}
-            style={{flex:1,background:"rgba(255,255,255,0.05)",border:"1px solid #1e293b",
-              borderRadius:10,padding:"11px 0",color:"#64748b",fontWeight:700,fontSize:14,cursor:"pointer"}}>
-            Salta →
-          </button>
-          <button onClick={onContinue}
-            style={{flex:2,background:isTournEnd?(won?"linear-gradient(90deg,#f59e0b,#d97706)":"#1e3a5f"):`linear-gradient(90deg,${tierColor},${tierColor}bb)`,
-              border:"none",borderRadius:10,padding:"13px 0",
-              color:"#fff",fontWeight:900,fontSize:15,cursor:"pointer",letterSpacing:0.3}}>
-            {isTournEnd?(won?"Al calendario 🏆":"Al calendario →"):"Avanti →"}
-          </button>
-        </div>
+        <button onClick={onContinue}
+          style={{width:"100%",background:isTournEnd?(won?"linear-gradient(90deg,#f59e0b,#d97706)":"#1e3a5f"):`linear-gradient(90deg,${tierColor},${tierColor}bb)`,
+            border:"none",borderRadius:10,padding:"13px 0",
+            color:"#fff",fontWeight:900,fontSize:15,cursor:"pointer",letterSpacing:0.3}}>
+          {isTournEnd?(won?"Al calendario 🏆":"Al calendario →"):"Avanti →"}
+        </button>
       </div>
     </div>
   );
