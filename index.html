@@ -1331,51 +1331,24 @@ const NAT_NAMES={
 NAT_NAMES.DEFAULT={fn:["Alexis","Damian","Stefan","Lukas","Marco","David","Thomas","Jonas","Anton","Viktor","Mikael","Emil","Lars","Erik","Sven","Bjorn","Kai","Nils","Rolf","Hans"],
                    ln:["Petrov","Moreau","Garcia","Ionescu","Kovacs","Werner","Silva","Lopez","Torres","Blanc","Lindqvist","Eriksson","Andersen","Bergstrom","Gustafsson","Halvorsen","Jansen","Magnusson","Nielsen","Sorensen"]};
 
-function genNameForRank(rank, usedNames){
+function genNameForRank(rank){
   const pool=["ESP","FRA","GER","ARG","BRA","CHI","RUS","AUT","CZE","POL","HUN","SRB","AUS","USA","JPN","CHN","KOR","KAZ","GBR","ITA","RSA","ROU","COL"];
-  for(let attempt=0;attempt<20;attempt++){
-    const salt=attempt*7919;
-    const nc=pool[Math.floor(sv(rank*31+7+salt)*pool.length)];
-    const p=NAT_NAMES[nc]||NAT_NAMES.DEFAULT;
-    const fi=Math.floor(sv(rank*53+3+salt)*p.fn.length);
-    const li=Math.floor(sv(rank*97+11+salt)*p.ln.length);
-    const no=NATS.find(n=>n.c===nc)||NATS[0];
-    const name=p.fn[fi][0]+". "+p.ln[li];
-    if(!usedNames||!usedNames.has(name)){
-      if(usedNames)usedNames.add(name);
-      return{name,nat:no.f,age:Math.floor(18+sv(rank*13+5)*15)};
-    }
-  }
-  // Fallback estremo: aggiungi suffisso numerico
   const nc=pool[Math.floor(sv(rank*31+7)*pool.length)];
   const p=NAT_NAMES[nc]||NAT_NAMES.DEFAULT;
+  const fi=Math.floor(sv(rank*53+3)*p.fn.length);
+  const li=Math.floor(sv(rank*97+11)*p.ln.length);
   const no=NATS.find(n=>n.c===nc)||NATS[0];
-  const name=p.fn[0][0]+". "+p.ln[0]+" II";
-  if(usedNames)usedNames.add(name);
-  return{name,nat:no.f,age:Math.floor(18+sv(rank*13+5)*15)};
+  return{name:p.fn[fi][0]+". "+p.ln[li],nat:no.f,age:Math.floor(18+sv(rank*13+5)*15)};
 }
 // Genera nome da seed arbitrario (usato per NPC replacement — evita collisioni di nome)
-function genNameFromSeed(seed, usedNames){
+function genNameFromSeed(seed){
   const pool=["ESP","FRA","GER","ARG","BRA","CHI","RUS","AUT","CZE","POL","HUN","SRB","AUS","USA","JPN","CHN","KOR","KAZ","GBR","ITA","RSA","ROU","COL"];
-  for(let attempt=0;attempt<20;attempt++){
-    const salt=attempt*7919;
-    const nc=pool[Math.floor(sv(seed*31+7+salt)*pool.length)];
-    const p=NAT_NAMES[nc]||NAT_NAMES.DEFAULT;
-    const fi=Math.floor(sv(seed*53+3+salt)*p.fn.length);
-    const li=Math.floor(sv(seed*97+11+salt)*p.ln.length);
-    const no=NATS.find(n=>n.c===nc)||NATS[0];
-    const name=p.fn[fi][0]+". "+p.ln[li];
-    if(!usedNames||!usedNames.has(name)){
-      if(usedNames)usedNames.add(name);
-      return{name,nat:no.f,age:Math.floor(18+sv(seed*13+5)*15)};
-    }
-  }
   const nc=pool[Math.floor(sv(seed*31+7)*pool.length)];
   const p=NAT_NAMES[nc]||NAT_NAMES.DEFAULT;
+  const fi=Math.floor(sv(seed*53+3)*p.fn.length);
+  const li=Math.floor(sv(seed*97+11)*p.ln.length);
   const no=NATS.find(n=>n.c===nc)||NATS[0];
-  const name=p.fn[0][0]+". "+p.ln[0]+" II";
-  if(usedNames)usedNames.add(name);
-  return{name,nat:no.f,age:Math.floor(18+sv(seed*13+5)*15)};
+  return{name:p.fn[fi][0]+". "+p.ln[li],nat:no.f,age:Math.floor(18+sv(seed*13+5)*15)};
 }
 
 // Punti ATP reali per rank — interpolazione lineare su breakpoint reali 2026
@@ -1422,24 +1395,22 @@ function rankForAtpPts(pts){
 
 function buildWorld(){
   const w={};
-  const usedNames=new Set();
   // Rank 1-200: nomi reali da ATP400
   ATP400.forEach(([rank,name,age,nat])=>{
     const base=rank<=4?33.5:rank<=8?31.5-(rank-4)*0.30:rank<=20?30.2-(rank-8)*0.35:rank<=50?26.0-(rank-20)*0.18:rank<=80?19.5-(rank-50)*0.117:rank<=100?12.5+(100-rank)*0.35:rank<=150?12.5-(rank-100)*0.030:rank<=200?11.0-(rank-150)*0.020:rank<=250?10.0-(rank-200)*0.010:rank<=300?9.5-(rank-250)*0.010:rank<=350?9.0-(rank-300)*0.010:Math.max(8.0,8.5-(rank-350)*0.010);
     const floor=rank<=4?28:rank<=8?25:rank<=20?21:rank<=50?16:rank<=100?12:rank<=150?10:rank<=200?9:rank<=250?8:7;
     const stats={};
     STAT_KEYS.forEach((k,i)=>{stats[k]=clamp(Math.round(base+sv(rank*100+i*17)*3-1.5),floor,35);});
-    usedNames.add(name);
     w[rank]={id:`p${rank}`,rank,initRank:rank,name,age,nat,stats,atpPoints:atpPtsForRank(rank)};
   });
-  // Rank 201-500: nomi fittizi con genNameForRank (unicità garantita)
+  // Rank 201-500: nomi fittizi con genNameForRank
   for(let rank=201;rank<=500;rank++){
     if(w[rank])continue;
     const base=rank<=250?10.0-(rank-200)*0.010:rank<=300?9.5-(rank-250)*0.010:rank<=350?9.0-(rank-300)*0.010:rank<=400?Math.max(8.0,8.5-(rank-350)*0.010):Math.max(5.5,8.0-(rank-400)*0.025);
     const floor=rank<=250?8:rank<=400?7:Math.max(5,Math.floor(base-1.5));
     const stats={};
     STAT_KEYS.forEach((k,i)=>{stats[k]=clamp(Math.round(base+sv(rank*100+i*17)*3-1.5),floor,35);});
-    const g=genNameForRank(rank, usedNames);
+    const g=genNameForRank(rank);
     w[rank]={id:`p${rank}`,rank,initRank:rank,name:g.name,age:g.age,nat:g.nat,stats,atpPoints:atpPtsForRank(rank)};
   }
   return w;
@@ -1546,17 +1517,14 @@ const NPC_PTS_MULT={Slam:0.22,M1000:0.24,ATP500:0.30,ATPFinals:0.30,ATP250:0.40,
 
 // Genera un NPC di sostituzione giovane (17-19 anni, rank 370-400)
 let _npcReplacementCounter=0;
-function generateReplacementNPC(year,week,world){
+function generateReplacementNPC(year,week){
   _npcReplacementCounter++;
   const seed=year*10000+week*100+_npcReplacementCounter;
   let h=seed*6173+12345; h=(h^(h>>>16))*0x45d9f3b; h=(h^(h>>>16))&0x7fffffff;
   const age=17+Math.floor((h%3)); // 17-19
   const rank=370+Math.floor(((h*31)%31)); // 370-400
   const pts=atpPtsForRank(rank);
-  // Costruisci set nomi esistenti dal world per evitare duplicati
-  const usedNames=new Set();
-  if(world)Object.values(world).forEach(p=>{if(p.name)usedNames.add(p.name);});
-  const g=genNameFromSeed(seed, usedNames);
+  const g=genNameFromSeed(seed);
   const id=`pR${year}_${_npcReplacementCounter}`;
   const stats=npcEffectiveStat(id,rank);
   return{id,rank,initRank:rank,name:g.name,age,nat:g.nat,stats,atpPoints:pts,isReplacement:true};
@@ -1842,7 +1810,7 @@ function simWeek(weekNum,world,yearNum,extraOpts={}){
       if(age>=retireAge){
         retiredIds.add(p.id);
         // Genera sostituto giovane
-        const rep=generateReplacementNPC(yearNum,weekNum,world);
+        const rep=generateReplacementNPC(yearNum,weekNum);
         replacements.push(rep);
       }
     });
