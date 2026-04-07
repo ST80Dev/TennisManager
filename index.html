@@ -3053,9 +3053,9 @@ function BracketUpdateScreen({bracket, playerName, completedRound, totalRounds, 
   const winCol="#10b981"; const loseCol="#ef4444"; const pendCol="#60a5fa";
 
   return(
-    <div style={{minHeight:"100vh",background:"#050e1a",color:"#fff",margin:"0 auto",display:"flex",flexDirection:"column"}}>
+    <div style={{height:"100vh",background:"#050e1a",color:"#fff",margin:"0 auto",display:"flex",flexDirection:"column",overflow:"hidden"}}>
       {/* Header */}
-      <div style={{background:"linear-gradient(135deg,#0a1628,#0d1f3a)",borderBottom:`2px solid ${tierColor}44`,padding:"16px 18px 12px"}}>
+      <div style={{background:"linear-gradient(135deg,#0a1628,#0d1f3a)",borderBottom:`2px solid ${tierColor}44`,padding:"16px 18px 12px",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:4,height:32,background:tierColor,borderRadius:2,flexShrink:0}}/>
           <div>
@@ -3226,7 +3226,7 @@ function BracketUpdateScreen({bracket, playerName, completedRound, totalRounds, 
       </div>
 
       {/* Footer pulsante */}
-      <div style={{background:"#070f1d",borderTop:"1px solid #1e293b",padding:"14px 18px"}}>
+      <div style={{background:"#070f1d",borderTop:"1px solid #1e293b",padding:"14px 18px",flexShrink:0}}>
         <div style={{display:"flex",gap:8}}>
           <button onClick={onContinue}
             style={{flex:1,background:"rgba(255,255,255,0.05)",border:"1px solid #1e293b",
