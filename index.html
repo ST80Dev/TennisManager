@@ -10,7 +10,10 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #fff; }
-#root { max-width: 520px; margin: 0 auto; min-height: 100vh; }
+:root { --app-max-w: 520px; }
+@media (min-width: 600px) { :root { --app-max-w: 700px; } }
+@media (min-width: 900px) { :root { --app-max-w: 800px; } }
+#root { max-width: var(--app-max-w); margin: 0 auto; min-height: 100vh; }
 button { font-family: inherit; }
 input, select { font-family: inherit; }
 ::-webkit-scrollbar { width: 6px; }
@@ -2213,7 +2216,7 @@ function BracketViewer({bracket,playerName,onClose,maxRound}){
   const safeRi=Math.min(ri,vis.length-1);
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",zIndex:200,overflowY:"auto",padding:16}}>
-      <div style={{maxWidth:500,margin:"0 auto"}}>
+      <div style={{margin:"0 auto"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
           <div>
             <div style={{fontWeight:800,fontSize:17,color:"#f0f6ff"}}>{getTourFlag(tourn.name)} {tourn.name}</div>
@@ -2313,7 +2316,7 @@ function FullCalendarViewer({currentWeek,onClose}){
 
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.95)",zIndex:300,overflowY:"auto"}}>
-      <div style={{maxWidth:520,margin:"0 auto",padding:"0 0 40px"}}>
+      <div style={{margin:"0 auto",padding:"0 0 40px"}}>
         {/* Header sticky con filtri */}
         <div style={{position:"sticky",top:0,background:"rgba(6,13,24,0.98)",zIndex:10,borderBottom:"1px solid #1e293b",padding:"12px 14px 10px",backdropFilter:"blur(6px)"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
@@ -2837,7 +2840,7 @@ function DrawScreen({bracket, playerName, playerNat, tourName, tourType, surface
   const hasSF=tt2.rounds>=5;
 
   return(
-    <div style={{height:"100vh",background:"#050e1a",color:"#fff",maxWidth:520,margin:"0 auto",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+    <div style={{height:"100vh",background:"#050e1a",color:"#fff",margin:"0 auto",display:"flex",flexDirection:"column",overflow:"hidden"}}>
       {/* Header torneo */}
       <div style={{background:"linear-gradient(135deg,#0a1628,#0d1f3a)",borderBottom:`2px solid ${tierColor}44`,padding:"18px 18px 14px",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
@@ -3046,7 +3049,7 @@ function BracketUpdateScreen({bracket, playerName, completedRound, totalRounds, 
   const winCol="#10b981"; const loseCol="#ef4444"; const pendCol="#60a5fa";
 
   return(
-    <div style={{minHeight:"100vh",background:"#050e1a",color:"#fff",maxWidth:520,margin:"0 auto",display:"flex",flexDirection:"column"}}>
+    <div style={{minHeight:"100vh",background:"#050e1a",color:"#fff",margin:"0 auto",display:"flex",flexDirection:"column"}}>
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#0a1628,#0d1f3a)",borderBottom:`2px solid ${tierColor}44`,padding:"16px 18px 12px"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -3355,7 +3358,7 @@ function MatchScreen({md,player,staff,onFinish,morale,bracket,tourRound,activeEv
   const courtC = SURF_COURT[tourn.surface]||SURF_COURT["Cemento"];
 
   return(
-    <div style={{minHeight:"100vh",background:"#080f1a",color:"#fff",maxWidth:500,margin:"0 auto",paddingBottom:20,fontFamily:"'DM Sans',sans-serif"}}>
+    <div style={{minHeight:"100vh",background:"#080f1a",color:"#fff",margin:"0 auto",paddingBottom:20,fontFamily:"'DM Sans',sans-serif"}}>
 
       {/* 1. HEADER TORNEO */}
       <div style={{background:"linear-gradient(135deg,#0d1b2e,#0a1520)",borderBottom:`2px solid ${surfCol}66`,padding:"8px 12px"}}>
@@ -4119,7 +4122,7 @@ function WinterBlockScreen({player, staff, week, year, onConfirm, morale}){
   const emptyColor  = "#1e293b";
 
   return(
-    <div style={{minHeight:"100vh",background:"#0f172a",color:"#fff",padding:16,maxWidth:500,margin:"0 auto",paddingBottom:40}}>
+    <div style={{minHeight:"100vh",background:"#0f172a",color:"#fff",padding:16,margin:"0 auto",paddingBottom:40}}>
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#0c1a3a,#1e3a5f)",border:"1px solid #1e3a8a80",borderRadius:12,padding:"14px 16px",marginBottom:16}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
@@ -4304,7 +4307,7 @@ function TrainingScreen({player,staff,onTrain,onFinish,trainCount,week,morale}){
   }
 
   return(
-    <div style={{minHeight:"100vh",background:"#0f172a",color:"#fff",padding:16,maxWidth:500,margin:"0 auto",paddingBottom:32}}>
+    <div style={{minHeight:"100vh",background:"#0f172a",color:"#fff",padding:16,margin:"0 auto",paddingBottom:32}}>
       {/* Header */}
       {isPausa&&<div style={{background:"rgba(30,58,138,0.3)",border:"1px solid #1e3a8a60",borderRadius:10,padding:"8px 14px",marginBottom:12,fontSize:13,color:"#93c5fd"}}>❄️ <strong>Pausa invernale</strong> — max 3 slot settimanali (recupero prioritario)</div>}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
@@ -4411,7 +4414,7 @@ function SponsorScreen({player,week,year,sponsor,onActivate,onBack}){
   const rank=player.rank||500;
   const offers=buildSponsorOffers(names, rank, week, year, player.atpPoints||0);
   return(
-    <div style={{minHeight:"100vh",background:"#0f172a",color:"#fff",padding:16,maxWidth:500,margin:"0 auto",paddingBottom:32}}>
+    <div style={{minHeight:"100vh",background:"#0f172a",color:"#fff",padding:16,margin:"0 auto",paddingBottom:32}}>
       <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:18}}>
         <button onClick={onBack} style={{background:"#1e3a5f",border:"1px solid #3b82f655",borderRadius:8,padding:"7px 16px",color:"#60a5fa",fontWeight:700,cursor:"pointer",fontSize:13}}>← Calendario</button>
         <h2 style={{fontSize:18,fontWeight:"bold",margin:0,flex:1}}>💼 Offerte Sponsor</h2>
@@ -4604,7 +4607,7 @@ function StaffScreen({player,staff,onHire,onFire,onBack,onSponsor}){
   const living=livingCost(player.rank||500);
   const totalWeekly=weeklyTotal+living;
   return(
-    <div style={{minHeight:"100vh",background:"#0f172a",color:"#fff",padding:16,maxWidth:500,margin:"0 auto",paddingBottom:32}}>
+    <div style={{minHeight:"100vh",background:"#0f172a",color:"#fff",padding:16,margin:"0 auto",paddingBottom:32}}>
       <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:18}}>
         <button onClick={onBack} style={{background:"#1e3a5f",border:"1px solid #3b82f655",borderRadius:8,padding:"7px 16px",color:"#60a5fa",fontWeight:700,cursor:"pointer",fontSize:13}}>← Calendario</button>
         <h2 style={{fontSize:18,fontWeight:"bold",margin:0,flex:1}}>👥 Staff & Finanze</h2>
@@ -6701,7 +6704,7 @@ function GameScreen({gs}){
   const weekGroups=horizonWeeks.map(w2=>({w:w2,ts:CAL.filter(t=>t.week===w2)}));
 
   return(
-    <div style={{minHeight:"100vh",background:"#0f172a",color:"#fff",maxWidth:520,margin:"0 auto",paddingBottom:80}}>
+    <div style={{minHeight:"100vh",background:"#0f172a",color:"#fff",margin:"0 auto",paddingBottom:80}}>
       <Notif n={notif}/>
       {bView&&<BracketViewer bracket={bView} playerName={player.name} onClose={()=>setBView(null)}/>}
       {showFullCal&&<FullCalendarViewer currentWeek={week} onClose={()=>setShowFullCal(false)}/>}
@@ -8264,7 +8267,7 @@ function GameScreen({gs}){
         })()}
 
       </div>
-      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:520,background:"#1e293b",borderTop:"1px solid #334155",display:"flex",zIndex:50}}>
+      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:"var(--app-max-w)",background:"#1e293b",borderTop:"1px solid #334155",display:"flex",zIndex:50}}>
         {[["cal","📅","Calendario"],["ranking","🏆","Classifica"],["history","📋","Storico"],["profile","👤","Profilo"]].map(([id,ico,lbl])=>(
           <button key={id} onClick={()=>setView(id)} style={{flex:1,background:"none",border:"none",padding:"9px 0 8px",color:view===id?"#f59e0b":"#94a3b8",fontSize:13,cursor:"pointer",fontWeight:view===id?700:500}}>
             <div style={{fontSize:22}}>{ico}</div><div style={{marginTop:2,letterSpacing:0.3}}>{lbl}</div>
