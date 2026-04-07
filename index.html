@@ -1451,10 +1451,9 @@ function getNPCRetireAge(npcId){
   // seed deterministico: stesso NPC sempre stessa età ritiro
   let h=id*6173+99991; h=(h^(h>>>16))*0x45d9f3b; h=(h^(h>>>16))&0x7fffffff;
   const r=(h%1000)/1000;
-  if(r<0.20) return 33+Math.floor((h%3));
-  if(r<0.70) return 36+Math.floor((h%3));
-  if(r<0.95) return 39+Math.floor((h%3));
-  return 42+Math.floor((h%3));
+  if(r<0.25) return 33+Math.floor((h%3));
+  if(r<0.90) return 36+Math.floor((h%3));
+  return 39+Math.floor((h%3));
 }
 
 // getNPCAgeParams: parametri età per win_mod, drift_mod, skip_prob
