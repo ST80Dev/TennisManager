@@ -5213,6 +5213,34 @@ function GameScreen({gs}){
   const matchDoneInProgress=useRef(false); // guard anti-doppia chiamata handleMatchDone
   const bracketUpdateCallback=useRef(null); // callback da eseguire dopo BracketUpdateScreen
 
+  // Warning anti-chiusura accidentale del browser
+  React.useEffect(()=>{
+    const handler=e=>{e.preventDefault();};
+    window.addEventListener("beforeunload",handler);
+    return()=>window.removeEventListener("beforeunload",handler);
+  },[]);
+
+  // Ripristina matchData se si ricarica un save con torneo in corso
+  React.useEffect(()=>{
+    if(activeTour&&!matchData){
+      const lk=activeTour.liveKey;
+      const brkt=brackets[lk];
+      const r=tourRound;
+      const tt2=activeTour.tt||TT[activeTour.type]||TT.ATP250;
+      const totalRounds=activeTour.totalRounds||tt2.rounds;
+      if(brkt?.rounds?.[r]){
+        const pm=brkt.rounds[r].matches?.find(m=>m.isPlayerMatch);
+        if(pm){
+          const opp=pm.p1obj?.isPlayer?pm.p2obj:pm.p1obj;
+          const safeOpp=opp||getOppForRound(player.rank,activeTour.type,r);
+          setMatchData({tourn:activeTour,opp:safeOpp,bestOf:activeTour.type==="Slam"?5:3,round:r,tt:tt2,totalRounds});
+          setMatchKey(k=>k+1);
+          setView("match");
+        }
+      }
+    }
+  },[]);
+
   function notify(msg,color="#10b981"){setNotif({msg,color});setTimeout(()=>setNotif(null),4500);}
 
   // ══════════════════════════════════════════════
