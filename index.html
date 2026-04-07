@@ -1505,17 +1505,39 @@ function getNPCDecayRate(rank){
 }
 
 // getNPCGainCap: cap guadagno settimanale in punti assoluti
-function getNPCGainCap(rank){
-  if(rank<=10)  return 500;
-  if(rank<=30)  return 200;
-  if(rank<=80)  return 90;
-  if(rank<=150) return 38;
-  if(rank<=250) return 18;
-  return 12;
+// Giovani (<24) ricevono bonus al cap per accelerare scalata ranking
+function getNPCGainCap(rank,age){
+  let cap;
+  if(rank<=10)  cap=500;
+  else if(rank<=30)  cap=200;
+  else if(rank<=80)  cap=90;
+  else if(rank<=150) cap=38;
+  else if(rank<=250) cap=18;
+  else cap=12;
+  // Bonus giovani: ×2.5 sotto i 21, ×1.8 sotto i 24
+  if(age!=null&&age<21) return Math.round(cap*2.5);
+  if(age!=null&&age<24) return Math.round(cap*1.8);
+  return cap;
 }
 
 // Moltiplicatori guadagno punti per tier
 const NPC_PTS_MULT={Slam:0.22,M1000:0.24,ATP500:0.30,ATPFinals:0.30,ATP250:0.40,ChallengerA:0.68,ChallengerB:0.78,ITF:0.88};
+
+// Talento newgen: ceiling deterministico basato su npcId
+// Applica solo a replacement (initRank>=350). Per originali usa logica initRank/3.
+// Distribuzione: 5% generazionale (top5), 10% grande (top15), 20% buono (top40),
+// 30% medio (top80), 35% filler (top150)
+function getNPCTalentCeiling(npcId,initRank){
+  if(initRank<350) return null; // giocatore originale: usa logica standard
+  const id=parseInt((npcId||"p400").replace(/\D/g,""))||400;
+  let h=id*8291+55771; h=(h^(h>>>16))*0x45d9f3b; h=(h^(h>>>16))&0x7fffffff;
+  const r=(h%1000)/1000;
+  if(r<0.05) return atpPtsForRank(1+Math.floor((h>>>8)%5));   // 5%: top 1-5
+  if(r<0.15) return atpPtsForRank(6+Math.floor((h>>>8)%10));  // 10%: top 6-15
+  if(r<0.35) return atpPtsForRank(16+Math.floor((h>>>8)%25)); // 20%: top 16-40
+  if(r<0.65) return atpPtsForRank(41+Math.floor((h>>>8)%40)); // 30%: top 41-80
+  return atpPtsForRank(81+Math.floor((h>>>8)%70));             // 35%: top 81-150
+}
 
 // Genera un NPC di sostituzione giovane (17-19 anni, rank 370-400)
 let _npcReplacementCounter=0;
@@ -1848,10 +1870,11 @@ function simWeek(weekNum,world,yearNum,extraOpts={}){
     }
     // isNewYear: aggiorna personalLevel con drift modulato dall'archetype
     // Floor/ceiling ASSOLUTI di carriera (non annuali) — permettono deriva cumulativa
-    // floor: initRank×8 (rank 2 → max rank 16 strutturale nel lungo periodo)
-    // ceil:  initRank÷3 (rank 10 → può salire a rank 3 strutturalmente)
+    // Newgen (initRank>=350): ceiling basato su talento deterministico
+    // Originali: floor=initRank×8, ceil=initRank÷3
     const floorPtsAbs=atpPtsForRank(Math.min(400,initRankB*8));
-    const ceilPtsAbs=atpPtsForRank(Math.max(1,initRankB<=2?1:Math.floor(initRankB/3)));
+    const talentCeil=getNPCTalentCeiling(p.id,initRankB);
+    const ceilPtsAbs=talentCeil||atpPtsForRank(Math.max(1,initRankB<=2?1:Math.floor(initRankB/3)));
     if(isNewYear){
       const archB=getNPCArchetype(initRankB);
       // Drift annuale per archetype (separato da volatility settimanale)
@@ -1864,8 +1887,8 @@ function simWeek(weekNum,world,yearNum,extraOpts={}){
     const targetPts=npcPersonalLevel[p.id];
     // MR asimmetrica verso personalLevel
     const mr=rank<=20?0.050:rank<=100?0.035:rank<=300?0.045:0.060;
-    // Bias età: giovani tendono su, veterani giù
-    const ageBias=age<22?0.010:age<25?0.005:age<28?0.0:age<31?-0.007:age<34?-0.015:-0.025;
+    // Bias età: giovani tendono su, veterani giù (valori aumentati per turnover generazionale)
+    const ageBias=age<22?0.035:age<25?0.015:age<28?0.0:age<31?-0.015:age<34?-0.035:-0.060;
     // Rumore ridotto (Pacchetto B): personalLevel gestisce mobilità strutturale,
     // rumore copre solo forma settimanale
     // rank≤30: ±0.3% · rank≤100: ±0.6% · altri: ±1.0%
@@ -1905,14 +1928,14 @@ function simWeek(weekNum,world,yearNum,extraOpts={}){
           if(!m.done)return;
           const losId=m.wid===m.p1id?m.p2id:m.p1id;
           if(losId&&byId[losId]&&loserPts>0){
-            const cap=getNPCGainCap(byId[losId].rank||400);
+            const cap=getNPCGainCap(byId[losId].rank||400,byId[losId].age);
             const gain=Math.min(Math.round(loserPts*mult),cap);
             byId[losId]={...byId[losId],atpPoints:(byId[losId].atpPoints||0)+gain};
           }
           if(fromEnd>0){
             const winId=m.wid;
             if(winId&&byId[winId]&&winnerPts>loserPts){
-              const cap=getNPCGainCap(byId[winId].rank||400);
+              const cap=getNPCGainCap(byId[winId].rank||400,byId[winId].age);
               const gain=Math.min(Math.round((winnerPts-loserPts)*mult),cap);
               byId[winId]={...byId[winId],atpPoints:(byId[winId].atpPoints||0)+gain};
             }
@@ -1920,7 +1943,7 @@ function simWeek(weekNum,world,yearNum,extraOpts={}){
         });
       });
       if(b.wid&&byId[b.wid]){
-        const cap=getNPCGainCap(byId[b.wid].rank||400);
+        const cap=getNPCGainCap(byId[b.wid].rank||400,byId[b.wid].age);
         const gain=Math.min(Math.round((ptsTbl[0]||0)*mult),cap);
         byId[b.wid]={...byId[b.wid],atpPoints:(byId[b.wid].atpPoints||0)+gain};
       }
@@ -1938,14 +1961,14 @@ function simWeek(weekNum,world,yearNum,extraOpts={}){
           if(!m.done)return;
           const losId=m.wid===m.p1id?m.p2id:m.p1id;
           if(losId&&byId[losId]&&loserPts2>0){
-            const cap=getNPCGainCap(byId[losId].rank||400);
+            const cap=getNPCGainCap(byId[losId].rank||400,byId[losId].age);
             const gain=Math.min(Math.round(loserPts2*mult),cap);
             byId[losId]={...byId[losId],atpPoints:(byId[losId].atpPoints||0)+gain};
           }
           if(fromEnd2>0){
             const winId=m.wid;
             if(winId&&byId[winId]&&winnerPts2>loserPts2){
-              const cap=getNPCGainCap(byId[winId].rank||400);
+              const cap=getNPCGainCap(byId[winId].rank||400,byId[winId].age);
               const gain=Math.min(Math.round((winnerPts2-loserPts2)*mult),cap);
               byId[winId]={...byId[winId],atpPoints:(byId[winId].atpPoints||0)+gain};
             }
@@ -1953,7 +1976,7 @@ function simWeek(weekNum,world,yearNum,extraOpts={}){
         });
       });
       if(b.wid&&byId[b.wid]){
-        const cap=getNPCGainCap(byId[b.wid].rank||400);
+        const cap=getNPCGainCap(byId[b.wid].rank||400,byId[b.wid].age);
         const gain=Math.min(Math.round((ptsTbl2[0]||0)*mult),cap);
         byId[b.wid]={...byId[b.wid],atpPoints:(byId[b.wid].atpPoints||0)+gain};
       }
