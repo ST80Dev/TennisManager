@@ -5726,7 +5726,7 @@ function GameScreen({gs}){
 
   useEffect(()=>{
     saveL({week,year,player,atpWorld:world,brackets,staff,activeTour,tourRound,weekDone,trainCount,morale,sponsor,winterDone,careerLog,activeEvents,consecutiveTournaments,consecutiveLosses,catCooldown,gameMode:gs.gameMode||"classic"});
-  },[week,year,player,world,activeTour,tourRound,weekDone,staff]);
+  },[week,year,player,world,activeTour,tourRound,weekDone,staff,trainCount,morale,sponsor,winterDone,careerLog,activeEvents,consecutiveTournaments,consecutiveLosses,catCooldown]);
 
   // advanceWeek: exact one week, debt tracking, leveled staff
   function advanceWeek(updP, lastResult=null, moraleOverride=null, activeEvtsOverride=null, weekSkip=1){
@@ -8335,7 +8335,7 @@ function GameScreen({gs}){
             <STitle>💾 SALVATAGGIO</STitle>
             <div style={{fontSize:12,color:"#94a3b8",marginBottom:12}}>Salvataggio automatico nel browser. Usa Esporta per portare la partita su altri dispositivi.</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              <button onClick={()=>{exportSave({week,year,player,atpWorld:world,brackets,staff,activeTour,tourRound,weekDone});notify("💾 File scaricato!","#10b981");}} style={{background:"#10b981",border:"none",borderRadius:8,padding:"10px 0",color:"#fff",fontWeight:"bold",cursor:"pointer",fontSize:14}}>📤 Esporta salvataggio</button>
+              <button onClick={()=>{exportSave({week,year,player,atpWorld:world,brackets,staff,activeTour,tourRound,weekDone,trainCount,morale,sponsor,winterDone,careerLog,activeEvents,consecutiveTournaments,consecutiveLosses,catCooldown,gameMode:gs.gameMode||"classic"});notify("💾 File scaricato!","#10b981");}} style={{background:"#10b981",border:"none",borderRadius:8,padding:"10px 0",color:"#fff",fontWeight:"bold",cursor:"pointer",fontSize:14}}>📤 Esporta salvataggio</button>
               <button onClick={()=>fileRef.current?.click()} style={{background:"#3b82f6",border:"none",borderRadius:8,padding:"10px 0",color:"#fff",fontWeight:"bold",cursor:"pointer",fontSize:14}}>📥 Importa salvataggio</button>
               <input ref={fileRef} type="file" accept=".json" style={{display:"none"}} onChange={e=>{if(e.target.files[0])importSave(e.target.files[0],state=>{saveL(state);window.location.reload();});}}/>
               <button onClick={()=>{if(window.confirm("Cancellare il salvataggio e ricominciare da zero?")){delL();window.location.reload();}}} style={{background:"#334155",border:"none",borderRadius:8,padding:"9px 0",color:"#94a3b8",cursor:"pointer",fontSize:13}}>🗑 Azzera carriera</button>
