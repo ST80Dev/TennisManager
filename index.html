@@ -5317,6 +5317,22 @@ function GameScreen({gs}){
         titles:["Ritardo bagagli", "Valigia smarrita"],
         descs:["Il bagaglio di {name} arriva con un giorno di ritardo. L'allenamento pre-torneo salta, la preparazione ne risente.",
                "L'aeroporto ha perso temporaneamente la valigia di {name}. Ritrovata, ma con ore di attesa inutile."] },
+      { id:"log_stalker", icon:"🔒", severe:false,
+        titles:["Problema di sicurezza", "Fan troppo insistente"],
+        descs:["Un fan troppo insistente impone a {name} misure di sicurezza extra. Un costo non previsto, ma necessario.",
+               "Un episodio di stalking costringe {name} ad assumere protezione personale temporanea."] },
+      { id:"log_taxes", icon:"📊", severe:false,
+        titles:["Accertamento fiscale", "Controllo del fisco"],
+        descs:["Un accertamento fiscale piomba sulla scrivania di {name}. Servono giorni tra commercialista e avvocati per chiarire.",
+               "I guadagni crescenti attirano l'attenzione del fisco. {name} deve affrontare un controllo approfondito."] },
+      { id:"log_coach_sick", icon:"🤒", severe:false,
+        titles:["Il coach si ammala", "Staff tecnico in difficoltà"],
+        descs:["Il coach di {name} è costretto a fermarsi per qualche giorno. La preparazione ne risente.",
+               "Una brutta influenza ferma il coach tecnico di {name} nel peggior momento possibile."] },
+      { id:"log_physio_offer", icon:"🤝", severe:false,
+        titles:["Il fisioterapista riceve un'offerta", "Il physio in dubbio"],
+        descs:["Un top player propone al fisioterapista di {name} un contratto più ricco. La situazione crea tensione interna.",
+               "Il fisioterapista di {name} valuta un'offerta esterna. Settimane di incertezza mentre la decisione matura."] },
     ],
     // ── FORMA / MENTALE ──
     form: [
@@ -5345,6 +5361,14 @@ function GameScreen({gs}){
         titles:["Pressione esterna", "Il confronto con gli altri pesa"],
         descs:["Un coetaneo che {name} conosce bene ha scalato il ranking più velocemente. Il confronto è inevitabile e porta con sé qualche pensiero di troppo.",
                "Il manager mette pressione sui risultati durante una telefonata. {name} esce dalla conversazione con più domande che risposte."] },
+      { id:"form_tabloid", icon:"📰", severe:false,
+        titles:["Scandalo mediatico", "Notizia sui tabloid"],
+        descs:["Una storia personale di {name} finisce sui giornali scandalistici. L'attenzione è invadente e fuori luogo.",
+               "I tabloid pubblicano un pezzo sgradevole su {name}. Difficile concentrarsi sul tennis in queste condizioni."] },
+      { id:"form_rivalry", icon:"⚔️", severe:false,
+        titles:["Rivalità sgradevole", "Ossessione per un avversario"],
+        descs:["Un avversario entra nella testa di {name} dopo troppe sconfitte ravvicinate. Serve rompere il muro mentale.",
+               "La nemesi di {name} continua a vincere gli scontri diretti. La pressione psicologica si accumula."] },
     ],
     // ── POSITIVI (rari) ──
     positive: [
@@ -5364,6 +5388,22 @@ function GameScreen({gs}){
         titles:["Sessione video rivoluzionaria", "Analisi tecnica illuminante"],
         descs:["Una sessione di video-analisi con lo staff tecnico svela un pattern che {name} non aveva mai notato. Qualcosa fa clic.",
                "Rivedere le ultime partite con occhio critico aiuta {name} a capire dove può migliorare immediatamente."] },
+      { id:"pos_endorsement", icon:"💼", severe:false,
+        titles:["Proposta di endorsement", "Accordo con un brand"],
+        descs:["Un marchio globale propone a {name} una collaborazione mirata. L'assegno è significativo.",
+               "{name} firma un accordo spot con uno sponsor del circuito. Il riconoscimento economico è tangibile."] },
+      { id:"pos_wildcard", icon:"🎫", severe:false,
+        titles:["Wildcard ricevuta", "Invito ufficiale"],
+        descs:["L'organizzazione di un torneo importante include {name} nella lista degli invitati. Una bella vetrina.",
+               "{name} ottiene una wildcard inattesa. Un'opportunità da sfruttare al massimo."] },
+      { id:"pos_training_pro", icon:"🎯", severe:false,
+        titles:["Sparring con un Top 5", "Sessione con un Big del circuito"],
+        descs:["Una sessione di allenamento con un Top 5 apre a {name} nuove prospettive tecniche e mentali.",
+               "{name} condivide il campo con uno dei migliori al mondo. La differenza si sente, ma è da lì che si cresce."] },
+      { id:"pos_foundation", icon:"🌟", severe:false,
+        titles:["Nasce la fondazione di {name}", "Progetto benefico avviato"],
+        descs:["{name} firma l'atto costitutivo della propria fondazione benefica. Un passo di crescita personale oltre il tennis.",
+               "La fondazione di {name} prende vita. Un segno di maturità e presenza pubblica che va oltre i risultati in campo."] },
     ],
     // ── COLORE (atmosfera, nessun effetto) ──
     color: [
@@ -5429,7 +5469,18 @@ function GameScreen({gs}){
     log_delay:         { fatigueFloor:18, weeks:1 },
     form_pressure:     { moralePctDrop:0.08, moralePctCap:0.88, weeks:3 },
     pos_media:    { moraleDelta:8 },
+    pos_endorsement:  { moneyCost:-5000 },         // bonus economico, scala col tier "bonus"
+    pos_wildcard:     { moraleDelta:10 },
+    pos_training_pro: { pStrBonus:0.03, weeks:3 },
+    pos_foundation:   { moraleDelta:5 },
+    log_stalker:      { moneyCost:800, moraleDelta:-3 },
+    log_taxes:        { moneyCost:2000, moraleDelta:-2 },
+    log_coach_sick:   { moneyCost:200, moraleDelta:-3, pStrPenalty:0.03, weeks:2 },
+    log_physio_offer: { moraleDelta:-5 },
+    form_tabloid:     { moraleDelta:-10, pStrPenalty:0.05, weeks:2 },
+    form_rivalry:     { moraleDelta:-8, pStrPenalty:0.04, weeks:3 },
     col_interview:{}, col_training:{}, col_fan:{}, col_city:{}, col_food:{},
+    col_legend:{}, col_players:{},
     col_documentary:{ moraleDelta:14, tvBonus:true },
   };
 
@@ -5451,17 +5502,37 @@ function GameScreen({gs}){
             title:e.titles[ti], desc:e.descs[di]};
   }
 
+  // Tier multipliers per fascia di carriera
+  // dur     = moltiplicatore durata effetti (settimane)
+  // penalty = moltiplicatore penalità malus (morale, forza)
+  // bonus   = moltiplicatore guadagni bonus (€, morale positivo)
+  // I top sono più resilienti mentalmente ma più esposti mediaticamente; i bonus scalano forte col rank.
+  function evtRankTier(p){
+    const r=p.rank||500;
+    const pts=p.atpPoints||0;
+    if(pts<40||r>500) return {dur:0.7, penalty:0.8, bonus:0.3};   // fuori classifica
+    if(r>250)         return {dur:0.9, penalty:1.0, bonus:0.7};   // 250-500
+    if(r>100)         return {dur:1.0, penalty:1.0, bonus:1.2};   // 100-250
+    if(r>50)          return {dur:1.1, penalty:0.9, bonus:2.0};   // 50-100
+    if(r>10)          return {dur:1.2, penalty:0.8, bonus:3.5};   // top 50
+    return                 {dur:1.3, penalty:0.7, bonus:6.0};     // top 10
+  }
+
   // Applica effetto immediato di un evento al player e agli stati
   function applyEvtEffect(evtId, pIn, moraleIn, staffIn){
     const fx=EVT_EFFECTS[evtId]||{};
     let pOut={...pIn};
     let newMorale=moraleIn;
     let addActive=null;
+    const tier=evtRankTier(pIn);
 
     // Scala il costo monetario al rank/punti del giocatore
-    // Fuori classifica (<40pts): ×0.10  |  rank 351-400: ×0.20  |  rank 251-350: ×0.40
-    // rank 101-250: ×0.70  |  rank <=100: ×1.0
+    // Malus (moneyCost > 0): scala decrescente per fasce basse — un top paga il prezzo pieno
+    // Bonus (moneyCost < 0): scala col tier "bonus" — un top guadagna molto di più
     function evtScaledCost(base){
+      if(base<0){
+        return Math.round(base*tier.bonus);
+      }
       const r=pIn.rank||500;
       const pts=pIn.atpPoints||0;
       if(pts<40) return Math.round(base*0.10); // fuori classifica
@@ -5475,26 +5546,34 @@ function GameScreen({gs}){
       const tvGain=pts<40?300:r>350?300:r>250?600:r>100?1200:2500;
       pOut={...pOut,money:(pOut.money||0)+tvGain,_tvGain:tvGain};
     }
-    if(fx.moraleDelta) newMorale=clamp(moraleIn+(fx.moraleDelta||0),8,100);
-    // Calo % immediato del morale
-    if(fx.moralePctDrop) newMorale=Math.max(8,Math.round(newMorale*(1-fx.moralePctDrop)));
+    if(fx.moraleDelta){
+      // Negativo → penalty tier (top più resilienti); Positivo → bonus tier (top più visibili)
+      const scaled=fx.moraleDelta<0?fx.moraleDelta*tier.penalty:fx.moraleDelta*tier.bonus;
+      newMorale=clamp(moraleIn+scaled,8,100);
+    }
+    // Calo % immediato del morale (scala col penalty tier)
+    if(fx.moralePctDrop) newMorale=Math.max(8,Math.round(newMorale*(1-fx.moralePctDrop*tier.penalty)));
 
     // Effetti a durata: calcoliamo settimane ridotte dallo staff
     if(fx.weeks){
       const physioLvE=getStaffLevel(staffIn,"physio");
       const mentalLvE=getStaffLevel(staffIn,"mental");
-      let wks=fx.weeks;
+      // Durata base scalata col tier (top: durata leggermente più lunga, esposizione maggiore)
+      let wks=Math.max(1,Math.round(fx.weeks*tier.dur));
       const cat=Object.entries(EVT_EFFECTS).find(([k])=>k===evtId);
       // Fisio riduce injury, mental riduce form
       const isInjury=["inj_shoulder","inj_knee","inj_back","inj_ankle","inj_wrist","inj_serious","inj_fatigue_muscle","log_illness","log_delay"].includes(evtId);
-      const isForm=["form_slump","form_burnout","form_mental","form_tech","form_doubt","form_pressure"].includes(evtId);
+      const isForm=["form_slump","form_burnout","form_mental","form_tech","form_doubt","form_pressure","form_tabloid","form_rivalry"].includes(evtId);
       if(isInjury&&physioLvE) wks=Math.max(1,wks-physioLvE.level);
       if(isForm&&mentalLvE)   wks=Math.max(1,wks-mentalLvE.level);
       // Calcola moraleCap assoluto dal morale corrente se l'evento usa % relativa
       const computedCap=fx.moralePctCap?Math.round(newMorale*fx.moralePctCap):fx.moraleCap||null;
+      // pStrPenalty scalato col tier penalty (top assorbono meglio i cali fisici)
+      const scaledFx={...fx};
+      if(scaledFx.pStrPenalty) scaledFx.pStrPenalty=parseFloat((scaledFx.pStrPenalty*tier.penalty).toFixed(3));
       // weeksLeft+1: advanceWeek decrementa subito dopo l'evento, quindi al calendario
       // mostrerebbe già X-1. Inizializziamo a wks+1 per compensare il primo tick.
-      addActive={evtId,weeksLeft:wks+1,...fx,moraleCap:computedCap};
+      addActive={evtId,weeksLeft:wks+1,...scaledFx,moraleCap:computedCap};
     }
 
     // Stat penalty immediata (form_tech: -1pt su stat random)
@@ -5529,7 +5608,8 @@ function GameScreen({gs}){
 
   // Motore principale: genera evento se le condizioni lo permettono
   // Chiamato a inizio settimana, PRIMA di advanceWeek
-  function checkAndFireEvent(pCur, moraleCur, staffCur, yearCur, weekCur, consLosses, consTourns, activeEvts, noMatchContext=false, catCd={}){
+  // justWonTournament: se true esclude form e injury (post-vittoria → no crisi mentali)
+  function checkAndFireEvent(pCur, moraleCur, staffCur, yearCur, weekCur, consLosses, consTourns, activeEvts, noMatchContext=false, catCd={}, justWonTournament=false){
     if(activeEvts.length>=2) return null; // max 2 attivi
     // Categorie già attive — non sovrapporre eventi dello stesso tipo
     const activeCats=new Set(activeEvts.map(ae=>{
@@ -5553,7 +5633,8 @@ function GameScreen({gs}){
     const rank=pCur.rank||500;
 
     // Infortuni logici: fatica alta (anni 1+, peso ridotto)
-    if(!yr1Only&&!blockedCats.has("injury")){
+    // Non scattano subito dopo aver vinto un torneo (assurdo narrativamente)
+    if(!yr1Only&&!blockedCats.has("injury")&&!justWonTournament){
       if(fat>72) logicalCandidates.push({cat:"injury",id:"inj_serious",w:0.08*ym});
       if(fat>60) logicalCandidates.push({cat:"injury",id:"inj_back",w:0.12*ym});
       if(fat>52) logicalCandidates.push({cat:"injury",id:"inj_shoulder",w:0.09*ym});
@@ -5562,18 +5643,47 @@ function GameScreen({gs}){
 
     // Crisi forma: solo in contesto partita, anni 2+, non in cooldown
     // + guardia morale: eventi di crisi non scattano se il giocatore è mentalmente stabile
-    if(!noMatchContext&&!yr1Only&&!blockedCats.has("form")){
+    // + esclusione post-vittoria torneo (no crisi mentali dopo aver alzato la coppa)
+    if(!noMatchContext&&!yr1Only&&!blockedCats.has("form")&&!justWonTournament){
       if(consLosses>=3&&moraleCur<50) logicalCandidates.push({cat:"form",id:"form_slump",w:0.22*ym});
       if(consLosses>=5&&moraleCur<45) logicalCandidates.push({cat:"form",id:"form_mental",w:0.12*ym});
       if(consLosses>=3&&moraleCur<55) logicalCandidates.push({cat:"form",id:"form_doubt",w:0.10*ym});
+      // Rivalità: trigger logico per top 80 con strisce di sconfitte
+      if(consLosses>=4&&rank<=80&&moraleCur<60) logicalCandidates.push({cat:"form",id:"form_rivalry",w:0.18*ym});
+      // Tabloid: scandalo mediatico per top 50 (probabilità contestuale)
+      if(rank<=50&&Math.random()<0.04*ym) logicalCandidates.push({cat:"form",id:"form_tabloid",w:0.15*ym});
     }
 
     // Burnout: tornei consecutivi, anni 2+
-    if(!yr1Only&&!blockedCats.has("form")){
+    if(!yr1Only&&!blockedCats.has("form")&&!justWonTournament){
       if(consTourns>=6) logicalCandidates.push({cat:"form",id:"form_burnout",w:0.25*ym});
     }
-    if(!yr1Only&&!blockedCats.has("injury")){
+    if(!yr1Only&&!blockedCats.has("injury")&&!justWonTournament){
       if(consTourns>=5) logicalCandidates.push({cat:"injury",id:"inj_wrist",w:0.10*ym});
+    }
+
+    // ── EVENTI LOGISTICI RANK-GATED ──
+    if(!blockedCats.has("logistics")&&!yr1Only){
+      // Stalker / problemi sicurezza: solo top 30
+      if(rank<=30&&Math.random()<0.012) logicalCandidates.push({cat:"logistics",id:"log_stalker",w:0.7});
+      // Accertamento fiscale: top 100 (chi guadagna davvero)
+      if(rank<=100&&Math.random()<0.008) logicalCandidates.push({cat:"logistics",id:"log_taxes",w:0.7});
+      // Coach malato: solo se ha un coach
+      if((staffCur?.coach||0)>0&&Math.random()<0.012) logicalCandidates.push({cat:"logistics",id:"log_coach_sick",w:0.6});
+      // Physio in dubbio: solo se ha un physio e il giocatore è "appetibile" (top 150)
+      if((staffCur?.physio||0)>0&&rank<=150&&Math.random()<0.008) logicalCandidates.push({cat:"logistics",id:"log_physio_offer",w:0.6});
+    }
+
+    // ── EVENTI POSITIVI RANK-GATED (trigger logico, non solo dado puro) ──
+    if(!blockedCats.has("positive")&&!yr1Only){
+      // Endorsement: top 100, raro
+      if(rank<=100&&Math.random()<0.010) logicalCandidates.push({cat:"positive",id:"pos_endorsement",w:0.5});
+      // Wildcard: rank 100-300
+      if(rank>=100&&rank<=300&&Math.random()<0.012) logicalCandidates.push({cat:"positive",id:"pos_wildcard",w:0.5});
+      // Sparring con top: top 50
+      if(rank<=50&&Math.random()<0.010) logicalCandidates.push({cat:"positive",id:"pos_training_pro",w:0.5});
+      // Fondazione: top 20, evento "milestone" molto raro
+      if(rank<=20&&Math.random()<0.005) logicalCandidates.push({cat:"positive",id:"pos_foundation",w:0.4});
     }
 
     // Logistica: molto ridotta, non in cooldown
@@ -5635,20 +5745,26 @@ function GameScreen({gs}){
         }
         // Blocca se categoria in cooldown o già attiva
         if(blockedCats.has(evtCat)||activeCats.has(evtCat)){evtCat=null;}
+        // Post-vittoria torneo: blocca form e injury dal dado puro (no crisi mentali/fisiche dopo titolo)
+        if(justWonTournament&&(evtCat==="form"||evtCat==="injury")){evtCat=null;}
         if(evtCat){
           // Anno 1: logistics esclude log_flight (il giocatore non vola quasi mai)
           // log_flight escluso dal dado puro: scatta solo per trigger logico contestuale
-          const pureRollExcludes=["log_flight",...(yr1Only?["log_visa"]:[])]; // log_flight solo da trigger logico contestuale
+          const pureRollExcludes=["log_flight","log_stalker","log_taxes","log_coach_sick","log_physio_offer",
+                                  "pos_endorsement","pos_wildcard","pos_training_pro","pos_foundation",
+                                  "form_rivalry","form_tabloid",
+                                  ...(yr1Only?["log_visa"]:[])];
           const pool=EVT_POOL[evtCat].filter(e=>!e.severe&&!activeEvts.find(a=>a.evtId===e.id)&&!pureRollExcludes.includes(e.id));
           if(pool.length>0){
             const picked=pool[Math.floor(Math.random()*pool.length)];
             evtId=picked.id;
           }
         }
-        // Easter egg rarissimo
-        if(evtId&&evtCat!=="positive"&&evtCat!=="color"&&Math.random()<0.035&&!blockedCats.has("positive")&&!activeCats.has("positive")){
-          const pp=EVT_POOL.positive;
-          evtCat="positive"; evtId=pp[Math.floor(Math.random()*pp.length)].id;
+        // Easter egg rarissimo (esclude positivi rank-gated: solo via trigger logico)
+        if(evtId&&evtCat!=="positive"&&evtCat!=="color"&&!justWonTournament&&Math.random()<0.035&&!blockedCats.has("positive")&&!activeCats.has("positive")){
+          const rankGatedPos=["pos_endorsement","pos_wildcard","pos_training_pro","pos_foundation"];
+          const pp=EVT_POOL.positive.filter(e=>!rankGatedPos.includes(e.id));
+          if(pp.length>0){evtCat="positive"; evtId=pp[Math.floor(Math.random()*pp.length)].id;}
         }
       }
     }
@@ -6231,8 +6347,11 @@ function GameScreen({gs}){
         setLastTournName(activeTour?.name||null);
         setConsecutiveLosses(0);
         setConsecutiveTournaments(ct=>ct+1);
+        // Post-vittoria torneo: forza cooldown 3 settimane su form (no crisi mentali immediate dopo titolo)
+        setCatCooldown(cd=>({...cd,form:Math.max(cd.form||0,3)}));
         const activeEvtsSnapT=[...activeEvents];
-        const evtT=checkAndFireEvent(npFinal,titleMorale,staff,year,week,0,consecutiveTournaments+1,activeEvtsSnapT,false,catCooldown);
+        // noMatchContext=true (è tra-tornei, non match), justWonTournament=true (esclude form/injury)
+        const evtT=checkAndFireEvent(npFinal,titleMorale,staff,year,week,0,consecutiveTournaments+1,activeEvtsSnapT,true,catCooldown,true);
         if(evtT){
           const {pOut:pT,newMorale:nmT,addActive:aT,evtCat:ecT,newCooldown:ncT}=applyEvtEffect(evtT.id,npFinal,titleMorale,staff);
           const newLogT=[...careerLog,{cat:evtT.cat,icon:evtT.icon,title:evtT.title,year:evtT.year,week:evtT.week}].slice(-20);
@@ -8172,20 +8291,6 @@ function GameScreen({gs}){
                     <div style={{height:"100%",background:nextMilestone.col,borderRadius:2,width:Math.max(4,Math.min(100,(1-distToNext/50)*100))+"%",transition:"width 0.3s"}}/>
                   </div>
                   <div style={{fontSize:12,color:"#64748b",fontWeight:500,marginTop:3}}>{nextMilestone.desc}</div>
-                </div>
-              )}
-              {/* [DEV] Test ticker — bottone visibile solo se log vuoto */}
-              {careerLog.length===0&&(
-                <div style={{marginTop:10,textAlign:"center"}}>
-                  <button onClick={()=>setCareerLog([
-                    {cat:"injury",icon:"🤕",title:"Problema alla spalla destra",year,week},
-                    {cat:"logistics",icon:"✈️",title:"Volo cancellato per Dubai",year,week},
-                    {cat:"form",icon:"😟",title:"Crisi di fiducia — tre sconfitte",year,week},
-                    {cat:"positive",icon:"⚡",title:"Sessione di allenamento storica",year,week},
-                    {cat:"color",icon:"📰",title:"Intervista al quotidiano sportivo",year,week},
-                  ])} style={{background:"rgba(100,116,139,0.10)",border:"1px dashed #334155",borderRadius:8,padding:"5px 14px",color:"#475569",fontSize:11,cursor:"pointer",fontWeight:600}}>
-                    🧪 Test ticker notizie
-                  </button>
                 </div>
               )}
               {/* Best per stagione (da anno 2) */}
