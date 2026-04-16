@@ -1143,71 +1143,94 @@ function getStaffWeeklyCost(staff){return Object.keys(STAFF_LEVELS).reduce((t,k)
 // Legacy/Brand (mista, alcune con rendita passiva differita).
 // Il valore stored per ogni chiave è l'anno di acquisto (null/undefined = non posseduto).
 // ═══════════════════════════════════════════════════
+// refundPct: quota rimborsata alla dismissione (0 = servizio senza asset)
+// dismissMorale: malus morale applicato alla dismissione (0 = nessuno)
+// Servizi (team) si interrompono senza rimborso; asset (infra/academy/brand) si vendono a perdita;
+// la fondazione è l'unica con costo narrativo esplicito perché chiuderla è un danno reputazionale.
 const INVESTMENTS={
   center:{
     icon:"🏟️", name:"Centro di allenamento privato", category:"infra",
-    cost:300000, weeklyCost:0, rankGate:150,
+    cost:300000, weeklyCost:0, rankGate:150, refundPct:0.50, dismissMorale:0,
     summary:"Struttura di proprietà, allenamenti mirati.",
     pros:["+1 crescita stat/settimana (come sparring base)","Fatica -1/sett aggiuntiva"],
     cons:[],
   },
   residence:{
     icon:"🏡", name:"Residenza con campi", category:"infra",
-    cost:400000, weeklyCost:0, rankGate:100,
+    cost:400000, weeklyCost:0, rankGate:100, refundPct:0.50, dismissMorale:0,
     summary:"Casa con campi privati.",
     pros:["Vitto & alloggio = 0 nelle settimane senza torneo"],
     cons:[],
   },
   jet:{
     icon:"✈️", name:"Jet privato", category:"infra",
-    cost:1000000, weeklyCost:0, rankGate:30,
+    cost:1000000, weeklyCost:0, rankGate:30, refundPct:0.50, dismissMorale:0,
     summary:"Voli su misura, zero imprevisti.",
     pros:["Immunità a 'Volo cancellato'","Jet-lag dimezzato su ogni spostamento"],
     cons:[],
   },
   nutritionist:{
     icon:"🥗", name:"Nutrizionista personale", category:"team",
-    cost:50000, weeklyCost:577, rankGate:200,
+    cost:50000, weeklyCost:577, rankGate:200, refundPct:0, dismissMorale:0,
     summary:"Piano alimentare dedicato, longevità.",
     pros:["-50% decadimento stat età","+1 recupero fatica/sett"],
     cons:["Costo ricorrente ~€30k/anno"],
   },
   conditioner:{
     icon:"🏃", name:"Preparatore atletico senior", category:"team",
-    cost:80000, weeklyCost:1538, rankGate:150,
+    cost:80000, weeklyCost:1538, rankGate:150, refundPct:0, dismissMorale:0,
     summary:"Preparazione d'élite, meno infortuni.",
     pros:["-40% probabilità trigger infortuni","Prestazione fisica più stabile"],
     cons:["Costo ricorrente ~€80k/anno"],
   },
   biomech:{
     icon:"🔬", name:"Biomeccanico / video team", category:"team",
-    cost:60000, weeklyCost:962, rankGate:100,
+    cost:60000, weeklyCost:962, rankGate:100, refundPct:0, dismissMorale:0,
     summary:"Analisi tecnica costante.",
     pros:["Immunità a 'Regressione tecnica'","'Dubbi sul gioco' −50% probabilità"],
     cons:["Costo ricorrente ~€50k/anno"],
   },
   foundation:{
     icon:"🌟", name:"Fondazione benefica", category:"legacy",
-    cost:250000, weeklyCost:577, rankGate:50,
+    cost:250000, weeklyCost:577, rankGate:50, refundPct:0, dismissMorale:-8,
     summary:"Progetto sociale di lungo periodo.",
     pros:["+5 morale a inizio stagione","Floor morale a 35 (non scende sotto)"],
-    cons:["Costo ricorrente ~€30k/anno"],
+    cons:["Costo ricorrente ~€30k/anno","Chiuderla costa −8 morale (danno reputazionale)"],
   },
   academy:{
     icon:"🎾", name:"Accademia giovanile", category:"legacy",
-    cost:300000, weeklyCost:0, weeklyIncome:1538, incomeDelayYears:2, rankGate:80,
+    cost:300000, weeklyCost:0, weeklyIncome:1538, incomeDelayYears:2, rankGate:80, refundPct:0.50, dismissMorale:0,
     summary:"Formazione nuove leve, ritorno passivo dopo avviamento.",
-    pros:["+€80k/anno dopo 2 anni di avviamento","Prestigio e networking"],
+    pros:["+€80k/anno dopo 2 anni di avviamento","Prestigio e networking","Rivendita al 70% se già in rendita (≥2 anni)"],
     cons:["Investimento lungo, ROI dal 3° anno"],
   },
   brand:{
     icon:"👕", name:"Linea di abbigliamento", category:"legacy",
-    cost:200000, weeklyCost:0, weeklyIncome:769, rankGate:50,
+    cost:200000, weeklyCost:0, weeklyIncome:769, rankGate:50, refundPct:0.40, dismissMorale:0,
     summary:"Brand personale, rendita immediata ma più esposizione.",
     pros:["+€40k/anno da subito"],
     cons:["Raddoppia la probabilità di 'Scandalo mediatico'"],
   },
 };
+// Cooldown di ri-acquisto dopo dismissione (in settimane). Evita gaming buy-sell.
+const INVESTMENT_REBUY_COOLDOWN=26;
+// 0 se disponibile, altrimenti settimane rimanenti prima di poter riacquistare
+function investmentRebuyCooldown(player,id,currentYear,currentWeek){
+  const cd=(player.investmentsCooldown||{})[id];
+  if(!cd) return 0;
+  const nowGlobal=currentYear*51+currentWeek;
+  return Math.max(0,cd-nowGlobal);
+}
+// Calcola rimborso dismissione — tiene conto della regola speciale Accademia ≥2 anni
+function computeDismissRefund(player,id,currentYear){
+  const def=INVESTMENTS[id]; if(!def) return 0;
+  let pct=def.refundPct||0;
+  if(id==="academy"){
+    const purchaseYear=(player.investments||{})[id]||currentYear;
+    if((currentYear-purchaseYear)>=2) pct=0.70;
+  }
+  return Math.round(def.cost*pct);
+}
 
 // Quali investimenti possiede? Ritorna mappa id → anno-acquisto (o null).
 function getInvestments(player){return player?.investments||{};}
@@ -4740,7 +4763,7 @@ function NewsFlashScreen({evt,onDismiss}){
   );
 }
 
-function StaffScreen({player,staff,year,onHire,onFire,onBack,onSponsor,onInvest}){
+function StaffScreen({player,staff,year,week,onHire,onFire,onBack,onSponsor,onInvest,onDismissInvest}){
   React.useEffect(()=>{window.scrollTo(0,0);},[]);
   const money=player.money||0;
   const weeklyTotal=getStaffWeeklyCost(staff);
@@ -4939,11 +4962,14 @@ function StaffScreen({player,staff,year,onHire,onFire,onBack,onSponsor,onInvest}
                       const rank=player.rank||500;
                       const rankLocked=def.rankGate&&rank>def.rankGate;
                       const canAfford=(player.money||0)>=def.cost;
+                      const cdLeft=investmentRebuyCooldown(player,id,year||1,week||1);
+                      const onCooldown=!owned&&cdLeft>0;
+                      const refundPreview=owned?computeDismissRefund(player,id,year||1):0;
                       const isOpen=openCat===id;
-                      const bg=owned?"rgba(16,185,129,0.10)":rankLocked?"#071526":"#0a1628";
-                      const border=owned?"1px solid #10b981":rankLocked?"1px solid #1e293b":"1px solid #1e3a5f";
+                      const bg=owned?"rgba(16,185,129,0.10)":onCooldown?"rgba(148,163,184,0.06)":rankLocked?"#071526":"#0a1628";
+                      const border=owned?"1px solid #10b981":onCooldown?"1px solid #334155":rankLocked?"1px solid #1e293b":"1px solid #1e3a5f";
                       return(
-                        <div key={id} style={{background:bg,border,borderRadius:8,padding:"8px 10px",opacity:rankLocked?0.55:1}}>
+                        <div key={id} style={{background:bg,border,borderRadius:8,padding:"8px 10px",opacity:rankLocked||onCooldown?0.65:1}}>
                           <div style={{display:"flex",alignItems:"center",gap:8}}>
                             <span style={{fontSize:20}}>{def.icon}</span>
                             <div style={{flex:1,minWidth:0}}>
@@ -4951,9 +4977,11 @@ function StaffScreen({player,staff,year,onHire,onFire,onBack,onSponsor,onInvest}
                               <div style={{fontSize:11,color:"#64748b"}}>
                                 {owned
                                   ? <span style={{color:"#10b981",fontWeight:700}}>✓ Attivo · dal Anno {purchaseYear}</span>
-                                  : rankLocked
-                                    ? <span style={{color:"#ef4444"}}>🔒 Disponibile da rank ≤#{def.rankGate}</span>
-                                    : <span>{def.summary}</span>}
+                                  : onCooldown
+                                    ? <span style={{color:"#94a3b8"}}>⏳ Riacquistabile tra {cdLeft} settimane</span>
+                                    : rankLocked
+                                      ? <span style={{color:"#ef4444"}}>🔒 Disponibile da rank ≤#{def.rankGate}</span>
+                                      : <span>{def.summary}</span>}
                               </div>
                             </div>
                             <div style={{textAlign:"right",flexShrink:0}}>
@@ -4980,9 +5008,12 @@ function StaffScreen({player,staff,year,onHire,onFire,onBack,onSponsor,onInvest}
                                   <span style={{color:"#cbd5e1"}}>{def.cons.join(" · ")}</span>
                                 </div>
                               )}
+                              <div style={{marginTop:4,color:"#64748b",fontSize:10}}>
+                                Dismissione: {def.refundPct>0?`rimborso ${Math.round(def.refundPct*100)}%`:"nessun rimborso"}{def.dismissMorale<0?`, morale ${def.dismissMorale}`:""} · cooldown {INVESTMENT_REBUY_COOLDOWN} sett.
+                              </div>
                             </div>
                           )}
-                          {!owned&&!rankLocked&&(
+                          {!owned&&!rankLocked&&!onCooldown&&(
                             <div style={{marginTop:7}}>
                               <button
                                 onClick={()=>canAfford&&onInvest&&onInvest(id)}
@@ -4992,6 +5023,17 @@ function StaffScreen({player,staff,year,onHire,onFire,onBack,onSponsor,onInvest}
                                   padding:"5px 0",color:canAfford?"#f59e0b":"#334155",
                                   cursor:canAfford?"pointer":"default",fontSize:12,fontWeight:700}}>
                                 {canAfford?`Acquista — €${fmt(def.cost)}`:"Budget insufficiente"}
+                              </button>
+                            </div>
+                          )}
+                          {owned&&(
+                            <div style={{marginTop:7}}>
+                              <button
+                                onClick={()=>onDismissInvest&&onDismissInvest(id)}
+                                style={{width:"100%",background:"rgba(239,68,68,0.10)",
+                                  border:"1px solid #ef444455",borderRadius:6,
+                                  padding:"5px 0",color:"#ef4444",cursor:"pointer",fontSize:12,fontWeight:700}}>
+                                {refundPreview>0?`Dismetti — rimborso €${fmt(refundPreview)}`:"Interrompi — nessun rimborso"}
                               </button>
                             </div>
                           )}
@@ -6820,10 +6862,39 @@ function GameScreen({gs}){
     const def=INVESTMENTS[key];
     if(!def) return;
     if(hasInvestment(player,key)){notify("Già acquistato.","#64748b");return;}
+    const cdLeft=investmentRebuyCooldown(player,key,year,week);
+    if(cdLeft>0){notify(`Riacquistabile tra ${cdLeft} settimane.`,"#f59e0b");return;}
     if((player.money||0)<def.cost){notify("Budget insufficiente.","#ef4444");return;}
     if(def.rankGate&&(player.rank||500)>def.rankGate){notify(`Disponibile da rank ≤${def.rankGate}.`,"#ef4444");return;}
     setPlayer(p=>({...p,money:(p.money||0)-def.cost,investments:{...(p.investments||{}),[key]:year}}));
     notify(`${def.icon} ${def.name} acquistato!`,"#10b981");
+  }
+  function handleDismissInvestment(key){
+    const def=INVESTMENTS[key];
+    if(!def) return;
+    if(!hasInvestment(player,key)){notify("Non posseduto.","#64748b");return;}
+    const refund=computeDismissRefund(player,key,year);
+    const moraleDelta=def.dismissMorale||0;
+    const msgLines=[];
+    msgLines.push(`Dismettere "${def.name}"?`);
+    if(refund>0) msgLines.push(`\nRimborso: €${fmt(refund)} (su €${fmt(def.cost)} investiti).`);
+    else msgLines.push(`\nNessun rimborso (contratto di servizio).`);
+    if(moraleDelta<0) msgLines.push(`\nMorale ${moraleDelta} immediato.`);
+    msgLines.push(`\nEffetti rimossi dalla settimana successiva.`);
+    msgLines.push(`Non riacquistabile per ${INVESTMENT_REBUY_COOLDOWN} settimane.`);
+    if(!window.confirm(msgLines.join(""))) return;
+    const cdUntil=year*51+week+INVESTMENT_REBUY_COOLDOWN;
+    setPlayer(p=>{
+      const newInv={...(p.investments||{})};
+      delete newInv[key];
+      const newCd={...(p.investmentsCooldown||{}),[key]:cdUntil};
+      return {...p,money:(p.money||0)+refund,investments:newInv,investmentsCooldown:newCd};
+    });
+    if(moraleDelta) setMorale(m=>clamp(m+moraleDelta,0,100));
+    const parts=[`${def.icon} ${def.name} dismesso`];
+    if(refund>0) parts.push(`+€${fmt(refund)}`);
+    if(moraleDelta<0) parts.push(`morale ${moraleDelta}`);
+    notify(parts.join(" · "),"#64748b");
   }
 
   function getLiveBracket(t){
@@ -7141,7 +7212,7 @@ function GameScreen({gs}){
       return<WinterBlockScreen player={player} staff={staff} week={week} year={year} onConfirm={handleWinterConfirm} morale={morale}/>;
     return<TrainingScreen player={player} staff={staff} onTrain={handleTrain} onFinish={handleTrainFinish} trainCount={trainCount} week={week} morale={morale}/>;
   }
-  if(view==="staff")return<StaffScreen player={player} staff={staff} year={year} onHire={handleHire} onFire={handleFire} onInvest={handleInvest} onBack={()=>setView("cal")} onSponsor={()=>setView("sponsor")}/>;
+  if(view==="staff")return<StaffScreen player={player} staff={staff} year={year} week={week} onHire={handleHire} onFire={handleFire} onInvest={handleInvest} onDismissInvest={handleDismissInvestment} onBack={()=>setView("cal")} onSponsor={()=>setView("sponsor")}/>;
   if(view==="sponsor")return<SponsorScreen player={player} week={week} year={year} sponsor={sponsor} onActivate={(s,amount)=>{setSponsor(s);setPlayer(p=>({...p,money:(p.money||0)+amount}));notify(`💼 ${s.company}: +€${amount.toLocaleString("it-IT")} accreditati!`,"#818cf8");setView("staff");}} onBack={()=>setView("staff")}/>;
 
   const fat=player.fatigue||0;
