@@ -1137,6 +1137,96 @@ const STAFF_LEVELS={
 function getStaffLevel(staff,key){const lv=staff[key]||0;if(!lv)return null;return{...STAFF_LEVELS[key].levels[lv-1],key,lv};}
 function getStaffWeeklyCost(staff){return Object.keys(STAFF_LEVELS).reduce((t,k)=>{const lv=staff[k]||0;return t+(lv>0?STAFF_LEVELS[k].levels[lv-1].cost:0);},0);}
 
+// ═══════════════════════════════════════════════════
+// INVESTIMENTI & LEGACY
+// Tre categorie: Infrastruttura (one-shot), Team esteso (costo settimanale),
+// Legacy/Brand (mista, alcune con rendita passiva differita).
+// Il valore stored per ogni chiave è l'anno di acquisto (null/undefined = non posseduto).
+// ═══════════════════════════════════════════════════
+const INVESTMENTS={
+  center:{
+    icon:"🏟️", name:"Centro di allenamento privato", category:"infra",
+    cost:300000, weeklyCost:0, rankGate:150,
+    summary:"Struttura di proprietà, allenamenti mirati.",
+    pros:["+1 crescita stat/settimana (come sparring base)","Fatica -1/sett aggiuntiva"],
+    cons:[],
+  },
+  residence:{
+    icon:"🏡", name:"Residenza con campi", category:"infra",
+    cost:400000, weeklyCost:0, rankGate:100,
+    summary:"Casa con campi privati.",
+    pros:["Vitto & alloggio = 0 nelle settimane senza torneo"],
+    cons:[],
+  },
+  jet:{
+    icon:"✈️", name:"Jet privato", category:"infra",
+    cost:1000000, weeklyCost:0, rankGate:30,
+    summary:"Voli su misura, zero imprevisti.",
+    pros:["Immunità a 'Volo cancellato'","Jet-lag dimezzato su ogni spostamento"],
+    cons:[],
+  },
+  nutritionist:{
+    icon:"🥗", name:"Nutrizionista personale", category:"team",
+    cost:50000, weeklyCost:577, rankGate:200,
+    summary:"Piano alimentare dedicato, longevità.",
+    pros:["-50% decadimento stat età","+1 recupero fatica/sett"],
+    cons:["Costo ricorrente ~€30k/anno"],
+  },
+  conditioner:{
+    icon:"🏃", name:"Preparatore atletico senior", category:"team",
+    cost:80000, weeklyCost:1538, rankGate:150,
+    summary:"Preparazione d'élite, meno infortuni.",
+    pros:["-40% probabilità trigger infortuni","Prestazione fisica più stabile"],
+    cons:["Costo ricorrente ~€80k/anno"],
+  },
+  biomech:{
+    icon:"🔬", name:"Biomeccanico / video team", category:"team",
+    cost:60000, weeklyCost:962, rankGate:100,
+    summary:"Analisi tecnica costante.",
+    pros:["Immunità a 'Regressione tecnica'","'Dubbi sul gioco' −50% probabilità"],
+    cons:["Costo ricorrente ~€50k/anno"],
+  },
+  foundation:{
+    icon:"🌟", name:"Fondazione benefica", category:"legacy",
+    cost:250000, weeklyCost:577, rankGate:50,
+    summary:"Progetto sociale di lungo periodo.",
+    pros:["+5 morale a inizio stagione","Floor morale a 35 (non scende sotto)"],
+    cons:["Costo ricorrente ~€30k/anno"],
+  },
+  academy:{
+    icon:"🎾", name:"Accademia giovanile", category:"legacy",
+    cost:300000, weeklyCost:0, weeklyIncome:1538, incomeDelayYears:2, rankGate:80,
+    summary:"Formazione nuove leve, ritorno passivo dopo avviamento.",
+    pros:["+€80k/anno dopo 2 anni di avviamento","Prestigio e networking"],
+    cons:["Investimento lungo, ROI dal 3° anno"],
+  },
+  brand:{
+    icon:"👕", name:"Linea di abbigliamento", category:"legacy",
+    cost:200000, weeklyCost:0, weeklyIncome:769, rankGate:50,
+    summary:"Brand personale, rendita immediata ma più esposizione.",
+    pros:["+€40k/anno da subito"],
+    cons:["Raddoppia la probabilità di 'Scandalo mediatico'"],
+  },
+};
+
+// Quali investimenti possiede? Ritorna mappa id → anno-acquisto (o null).
+function getInvestments(player){return player?.investments||{};}
+function hasInvestment(player,id){const inv=getInvestments(player);return !!(inv&&inv[id]);}
+// Anni trascorsi dall'acquisto (0 se acquistato nell'anno corrente)
+function investmentAge(player,id,currentYear){const y=getInvestments(player)[id];return y?Math.max(0,currentYear-y):null;}
+// Costo settimanale ricorrente totale
+function getInvestmentsWeeklyCost(player){const inv=getInvestments(player);return Object.entries(INVESTMENTS).reduce((t,[k,def])=>t+(inv[k]?(def.weeklyCost||0):0),0);}
+// Rendita passiva settimanale totale (rispetta incomeDelayYears)
+function getInvestmentsWeeklyIncome(player,currentYear){
+  const inv=getInvestments(player);
+  return Object.entries(INVESTMENTS).reduce((t,[k,def])=>{
+    if(!inv[k]||!def.weeklyIncome)return t;
+    const yrs=currentYear-inv[k];
+    if((def.incomeDelayYears||0)>yrs)return t;
+    return t+(def.weeklyIncome||0);
+  },0);
+}
+
 
 // ═══════════════════════════════════════════════════
 // HELPERS
@@ -4650,13 +4740,16 @@ function NewsFlashScreen({evt,onDismiss}){
   );
 }
 
-function StaffScreen({player,staff,onHire,onFire,onBack,onSponsor}){
+function StaffScreen({player,staff,year,onHire,onFire,onBack,onSponsor,onInvest}){
   React.useEffect(()=>{window.scrollTo(0,0);},[]);
   const money=player.money||0;
   const weeklyTotal=getStaffWeeklyCost(staff);
+  const invCost=getInvestmentsWeeklyCost(player);
+  const invIncome=getInvestmentsWeeklyIncome(player,year||1);
   function livingCost(rank){const base=rank>350?55:rank>300?75:rank>250?95:rank>200?120:rank>150?155:rank>100?200:rank>50?280:420;return base;}
-  const living=livingCost(player.rank||500);
-  const totalWeekly=weeklyTotal+living;
+  const hasResidenceUI=hasInvestment(player,"residence");
+  const living=hasResidenceUI?0:livingCost(player.rank||500);
+  const totalWeekly=weeklyTotal+living+invCost-invIncome;
   return(
     <div style={{minHeight:"100vh",background:"#0f172a",color:"#fff",padding:16,margin:"0 auto",paddingBottom:32}}>
       <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:18}}>
@@ -4694,8 +4787,8 @@ function StaffScreen({player,staff,onHire,onFire,onBack,onSponsor}){
               <div style={{fontSize:11,color:"#64748b",letterSpacing:0.8,textTransform:"uppercase",marginBottom:8}}>Spese settimana di allenamento</div>
               <div style={{display:"flex",flexDirection:"column",gap:5}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <span style={{fontSize:13,color:"#94a3b8"}}>🏠 Vitto & alloggio <span style={{fontSize:11,color:"#4e6680"}}>(rank {rankDisplay(player)})</span></span>
-                  <span style={{fontSize:13,fontWeight:700,color:"#f59e0b",fontFamily:"'Rajdhani',sans-serif"}}>−€{fmt(living)}</span>
+                  <span style={{fontSize:13,color:"#94a3b8"}}>🏠 Vitto & alloggio <span style={{fontSize:11,color:"#4e6680"}}>{hasResidenceUI?"(azzerato dalla Residenza)":"(rank "+rankDisplay(player)+")"}</span></span>
+                  <span style={{fontSize:13,fontWeight:700,color:hasResidenceUI?"#10b981":"#f59e0b",fontFamily:"'Rajdhani',sans-serif"}}>−€{fmt(living)}</span>
                 </div>
                 {staffBreakdown.map((s,i)=>(
                   <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -4703,9 +4796,21 @@ function StaffScreen({player,staff,onHire,onFire,onBack,onSponsor}){
                     <span style={{fontSize:13,fontWeight:700,color:"#ef4444",fontFamily:"'Rajdhani',sans-serif"}}>−€{fmt(s.cost)}</span>
                   </div>
                 ))}
+                {invCost>0&&(
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontSize:13,color:"#94a3b8"}}>💎 Mantenimento investimenti</span>
+                    <span style={{fontSize:13,fontWeight:700,color:"#ef4444",fontFamily:"'Rajdhani',sans-serif"}}>−€{fmt(invCost)}</span>
+                  </div>
+                )}
+                {invIncome>0&&(
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontSize:13,color:"#94a3b8"}}>📈 Rendita passiva</span>
+                    <span style={{fontSize:13,fontWeight:700,color:"#10b981",fontFamily:"'Rajdhani',sans-serif"}}>+€{fmt(invIncome)}</span>
+                  </div>
+                )}
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:"1px solid #1e3a5f",paddingTop:6,marginTop:2}}>
-                  <span style={{fontSize:13,fontWeight:700,color:"#cbd5e1"}}>Totale</span>
-                  <span style={{fontSize:15,fontWeight:900,color:"#ef4444",fontFamily:"'Rajdhani',sans-serif"}}>−€{fmt(totalWeekly)}</span>
+                  <span style={{fontSize:13,fontWeight:700,color:"#cbd5e1"}}>Totale netto</span>
+                  <span style={{fontSize:15,fontWeight:900,color:totalWeekly<0?"#10b981":"#ef4444",fontFamily:"'Rajdhani',sans-serif"}}>{totalWeekly<0?"+":"−"}€{fmt(Math.abs(totalWeekly))}</span>
                 </div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:2}}>
                   <span style={{fontSize:12,color:"#64748b"}}>Saldo previsto fine settimana</span>
@@ -4802,6 +4907,106 @@ function StaffScreen({player,staff,onHire,onFire,onBack,onSponsor}){
             </Card>
           );
         });
+      })()}
+
+      {/* ── INVESTIMENTI & LEGACY ── */}
+      {(()=>{
+        const[openCat,setOpenCat]=React.useState(null);
+        const CAT_META={
+          infra:{label:"🏗️ Infrastruttura",desc:"Una tantum. Qualità della vita e supporto di base."},
+          team:{label:"🧑‍⚕️ Team esteso",desc:"Costo ricorrente. Longevità e difesa dalla pressione."},
+          legacy:{label:"🌟 Legacy & Brand",desc:"Ritorno a lungo termine. Identità oltre il tennis."},
+        };
+        const catKeys=["infra","team","legacy"];
+        return(
+          <Card style={{marginTop:14}}>
+            <div style={{fontSize:13,fontWeight:800,color:"#f0f6ff",marginBottom:4,letterSpacing:0.3}}>💎 INVESTIMENTI & LEGACY</div>
+            <div style={{fontSize:11,color:"#64748b",marginBottom:10,lineHeight:1.5}}>
+              Scelte strategiche che plasmano la tua carriera oltre i risultati. Pro e contro espliciti prima di ogni acquisto.
+            </div>
+            {catKeys.map(catKey=>{
+              const items=Object.entries(INVESTMENTS).filter(([,d])=>d.category===catKey);
+              return(
+                <div key={catKey} style={{marginBottom:10}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"#94a3b8",marginBottom:4,paddingBottom:4,borderBottom:"1px solid #1e3a5f"}}>
+                    {CAT_META[catKey].label}
+                    <span style={{fontSize:10,color:"#4e6680",marginLeft:8,fontWeight:500,letterSpacing:0.2}}>{CAT_META[catKey].desc}</span>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                    {items.map(([id,def])=>{
+                      const owned=hasInvestment(player,id);
+                      const purchaseYear=owned?getInvestments(player)[id]:null;
+                      const rank=player.rank||500;
+                      const rankLocked=def.rankGate&&rank>def.rankGate;
+                      const canAfford=(player.money||0)>=def.cost;
+                      const isOpen=openCat===id;
+                      const bg=owned?"rgba(16,185,129,0.10)":rankLocked?"#071526":"#0a1628";
+                      const border=owned?"1px solid #10b981":rankLocked?"1px solid #1e293b":"1px solid #1e3a5f";
+                      return(
+                        <div key={id} style={{background:bg,border,borderRadius:8,padding:"8px 10px",opacity:rankLocked?0.55:1}}>
+                          <div style={{display:"flex",alignItems:"center",gap:8}}>
+                            <span style={{fontSize:20}}>{def.icon}</span>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontWeight:700,fontSize:13,color:"#f0f6ff"}}>{def.name}</div>
+                              <div style={{fontSize:11,color:"#64748b"}}>
+                                {owned
+                                  ? <span style={{color:"#10b981",fontWeight:700}}>✓ Attivo · dal Anno {purchaseYear}</span>
+                                  : rankLocked
+                                    ? <span style={{color:"#ef4444"}}>🔒 Disponibile da rank ≤#{def.rankGate}</span>
+                                    : <span>{def.summary}</span>}
+                              </div>
+                            </div>
+                            <div style={{textAlign:"right",flexShrink:0}}>
+                              <div style={{fontSize:13,fontWeight:800,color:"#f59e0b",fontFamily:"'Rajdhani',sans-serif"}}>€{fmt(def.cost)}</div>
+                              {def.weeklyCost>0&&<div style={{fontSize:10,color:"#ef4444"}}>−€{fmt(def.weeklyCost)}/sett</div>}
+                              {def.weeklyIncome>0&&<div style={{fontSize:10,color:"#10b981"}}>+€{fmt(def.weeklyIncome)}/sett{def.incomeDelayYears?` (da +${def.incomeDelayYears}a)`:""}</div>}
+                            </div>
+                            <button onClick={()=>setOpenCat(isOpen?null:id)}
+                              style={{background:isOpen?"#3b82f622":"transparent",border:`1px solid ${isOpen?"#3b82f6":"#1e3a5f"}`,borderRadius:6,padding:"3px 7px",color:isOpen?"#3b82f6":"#4e6680",cursor:"pointer",fontSize:11,fontWeight:700,flexShrink:0}}>
+                              ℹ
+                            </button>
+                          </div>
+                          {isOpen&&(
+                            <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #1e3a5f",fontSize:11,lineHeight:1.6}}>
+                              {def.pros.length>0&&(
+                                <div style={{marginBottom:4}}>
+                                  <span style={{color:"#10b981",fontWeight:700}}>Pro: </span>
+                                  <span style={{color:"#cbd5e1"}}>{def.pros.join(" · ")}</span>
+                                </div>
+                              )}
+                              {def.cons.length>0&&(
+                                <div>
+                                  <span style={{color:"#ef4444",fontWeight:700}}>Contro: </span>
+                                  <span style={{color:"#cbd5e1"}}>{def.cons.join(" · ")}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {!owned&&!rankLocked&&(
+                            <div style={{marginTop:7}}>
+                              <button
+                                onClick={()=>canAfford&&onInvest&&onInvest(id)}
+                                disabled={!canAfford}
+                                style={{width:"100%",background:canAfford?"rgba(245,158,11,0.15)":"transparent",
+                                  border:`1px solid ${canAfford?"#f59e0b":"#1e3a5f"}`,borderRadius:6,
+                                  padding:"5px 0",color:canAfford?"#f59e0b":"#334155",
+                                  cursor:canAfford?"pointer":"default",fontSize:12,fontWeight:700}}>
+                                {canAfford?`Acquista — €${fmt(def.cost)}`:"Budget insufficiente"}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+            <div style={{fontSize:10,color:"#4e6680",marginTop:4,fontStyle:"italic",lineHeight:1.5}}>
+              Gli investimenti sono permanenti. I costi/rendite ricorrenti sono applicati ogni settimana di allenamento.
+            </div>
+          </Card>
+        );
       })()}
     </div>
   );
@@ -5631,14 +5836,22 @@ function GameScreen({gs}){
     const logicalCandidates=[];
     const fat=pCur.fatigue||0;
     const rank=pCur.rank||500;
+    // Modificatori da investimenti Legacy
+    const hasJet=hasInvestment(pCur,"jet");
+    const hasBiomech=hasInvestment(pCur,"biomech");
+    const hasConditioner=hasInvestment(pCur,"conditioner");
+    const hasBrand=hasInvestment(pCur,"brand");
+    const injMult=hasConditioner?0.60:1.0; // preparatore atletico: -40% trigger infortuni
+    const doubtMult=hasBiomech?0.50:1.0;   // biomeccanico: dimezza form_doubt
+    const tabloidMult=hasBrand?2.0:1.0;    // brand esposto: raddoppia probabilità tabloid
 
     // Infortuni logici: fatica alta (anni 1+, peso ridotto)
     // Non scattano subito dopo aver vinto un torneo (assurdo narrativamente)
     if(!yr1Only&&!blockedCats.has("injury")&&!justWonTournament){
-      if(fat>72) logicalCandidates.push({cat:"injury",id:"inj_serious",w:0.08*ym});
-      if(fat>60) logicalCandidates.push({cat:"injury",id:"inj_back",w:0.12*ym});
-      if(fat>52) logicalCandidates.push({cat:"injury",id:"inj_shoulder",w:0.09*ym});
-      if(fat>47) logicalCandidates.push({cat:"injury",id:"inj_knee",w:0.07*ym});
+      if(fat>72) logicalCandidates.push({cat:"injury",id:"inj_serious",w:0.08*ym*injMult});
+      if(fat>60) logicalCandidates.push({cat:"injury",id:"inj_back",w:0.12*ym*injMult});
+      if(fat>52) logicalCandidates.push({cat:"injury",id:"inj_shoulder",w:0.09*ym*injMult});
+      if(fat>47) logicalCandidates.push({cat:"injury",id:"inj_knee",w:0.07*ym*injMult});
     }
 
     // Crisi forma: solo in contesto partita, anni 2+, non in cooldown
@@ -5647,11 +5860,12 @@ function GameScreen({gs}){
     if(!noMatchContext&&!yr1Only&&!blockedCats.has("form")&&!justWonTournament){
       if(consLosses>=3&&moraleCur<50) logicalCandidates.push({cat:"form",id:"form_slump",w:0.22*ym});
       if(consLosses>=5&&moraleCur<45) logicalCandidates.push({cat:"form",id:"form_mental",w:0.12*ym});
-      if(consLosses>=3&&moraleCur<55) logicalCandidates.push({cat:"form",id:"form_doubt",w:0.10*ym});
+      if(consLosses>=3&&moraleCur<55) logicalCandidates.push({cat:"form",id:"form_doubt",w:0.10*ym*doubtMult});
       // Rivalità: trigger logico per top 80 con strisce di sconfitte
       if(consLosses>=4&&rank<=80&&moraleCur<60) logicalCandidates.push({cat:"form",id:"form_rivalry",w:0.18*ym});
-      // Tabloid: scandalo mediatico per top 50 (probabilità contestuale)
-      if(rank<=50&&Math.random()<0.04*ym) logicalCandidates.push({cat:"form",id:"form_tabloid",w:0.15*ym});
+      // Tabloid: scandalo mediatico per top 50 (probabilità contestuale, aumentata se brand attivo)
+      if(rank<=50&&Math.random()<0.04*ym*tabloidMult) logicalCandidates.push({cat:"form",id:"form_tabloid",w:0.15*ym});
+      // Biomeccanico: immunità a form_tech (non push nel pool)
     }
 
     // Burnout: tornei consecutivi, anni 2+
@@ -5659,7 +5873,7 @@ function GameScreen({gs}){
       if(consTourns>=6) logicalCandidates.push({cat:"form",id:"form_burnout",w:0.25*ym});
     }
     if(!yr1Only&&!blockedCats.has("injury")&&!justWonTournament){
-      if(consTourns>=5) logicalCandidates.push({cat:"injury",id:"inj_wrist",w:0.10*ym});
+      if(consTourns>=5) logicalCandidates.push({cat:"injury",id:"inj_wrist",w:0.10*ym*injMult});
     }
 
     // ── EVENTI LOGISTICI RANK-GATED ──
@@ -5692,7 +5906,8 @@ function GameScreen({gs}){
     // rank 200-350: solo se effettivamente in zona diversa dalla home
     // SOGLIA PROBABILISTICA per log_flight: max ~1-2 volte/stagione
     // Il weighted sample sceglie SEMPRE dal pool se non vuoto — serve un gate esterno
-    if(!blockedCats.has("logistics")&&!yr1Only){
+    if(!blockedCats.has("logistics")&&!yr1Only&&!hasJet){
+      // Jet privato: immunità totale a log_flight
       const pts=pCur.atpPoints||0;
       const isAwayFromHome=(pCur.currentZone&&pCur.homeZone&&pCur.currentZone!==pCur.homeZone);
       // 3.5% per settimana per rank≤200 → ~1-2 eventi/stagione
@@ -5753,7 +5968,8 @@ function GameScreen({gs}){
           const pureRollExcludes=["log_flight","log_stalker","log_taxes","log_coach_sick","log_physio_offer",
                                   "pos_endorsement","pos_wildcard","pos_training_pro","pos_foundation",
                                   "form_rivalry","form_tabloid",
-                                  ...(yr1Only?["log_visa"]:[])];
+                                  ...(yr1Only?["log_visa"]:[]),
+                                  ...(hasBiomech?["form_tech"]:[])]; // biomeccanico: immunità form_tech
           const pool=EVT_POOL[evtCat].filter(e=>!e.severe&&!activeEvts.find(a=>a.evtId===e.id)&&!pureRollExcludes.includes(e.id));
           if(pool.length>0){
             const picked=pool[Math.floor(Math.random()*pool.length)];
@@ -5848,16 +6064,20 @@ function GameScreen({gs}){
   function advanceWeek(updP, lastResult=null, moraleOverride=null, activeEvtsOverride=null, weekSkip=1){
     const p=updP||player;
     const staffCost=getStaffWeeklyCost(staff);
+    const invWeeklyCost=getInvestmentsWeeklyCost(p);
+    const invWeeklyIncome=getInvestmentsWeeklyIncome(p,year);
     // Living cost: applicato SOLO nelle settimane senza torneo (allenamento/riposo/pausa)
     // Copre affitto campo, vitto, alloggio casa — nelle settimane torneo il lodge è già pagato
+    // Residenza con campi: azzera il costo vita nelle settimane a casa
     function livingCost(rank, isPausa){
       const base=rank>350?55:rank>300?75:rank>250?95:rank>200?120:rank>150?155:rank>100?200:rank>50?280:420;
       return isPausa?Math.round(base*0.6):base;
     }
     const nextWeek=(week%51)+1;
     const nextIsPausa=nextWeek>=42&&nextWeek<=51;
-    const living=lastResult?0:livingCost(p.rank||500,nextIsPausa);
-    let newMoney=(p.money||0)-staffCost-living;
+    const hasResidence=hasInvestment(p,"residence");
+    const living=lastResult?0:(hasResidence?0:livingCost(p.rank||500,nextIsPausa));
+    let newMoney=(p.money||0)-staffCost-living-invWeeklyCost+invWeeklyIncome;
     let updPlayer={...p,money:newMoney};
     const sparringLv=getStaffLevel(staff,"sparring");
     if(sparringLv&&(updPlayer.rank||500)<=250){
@@ -5866,8 +6086,10 @@ function GameScreen({gs}){
     }
     const physioLvW=getStaffLevel(staff,"physio");
     const physioRec=physioLvW?physioLvW.recoveryBonus:0;
-    // Recupero base + physio
-    const baseRec=3+physioRec;
+    // Recupero base + physio + bonus da investimenti (nutrizionista +1, centro privato +1)
+    const hasNutritionist=hasInvestment(p,"nutritionist");
+    const hasCenter=hasInvestment(p,"center");
+    const baseRec=3+physioRec+(hasNutritionist?1:0)+(hasCenter?1:0);
     updPlayer={...updPlayer,fatigue:Math.round(Math.max(0,(updPlayer.fatigue||0)-baseRec))};
     // Decadimento lieve stat non allenate (-0.05 su stat random ogni settimana)
     const decayStat=STAT_KEYS[Math.floor(Math.random()*STAT_KEYS.length)];
@@ -5875,7 +6097,7 @@ function GameScreen({gs}){
     const decayedStats={...updPlayer.stats,[decayStat]:parseFloat(Math.max(1,(updPlayer.stats[decayStat]||1)-decayAmt).toFixed(2))};
     updPlayer={...updPlayer,stats:decayedStats};
     // Fix2: decay fisico età-dipendente (pro-rata settimanale)
-    // Fisioterapista azzera il decay fisico età
+    // Fisioterapista azzera il decay fisico età; nutrizionista lo dimezza
     const physioLvAge=getStaffLevel(staff,"physio");
     const ageDecayAnnuo=(()=>{
       const a=updPlayer.age||17;
@@ -5887,14 +6109,25 @@ function GameScreen({gs}){
       if(a<38) return 1.20;
       return 1.80;
     })();
-    if(ageDecayAnnuo>0&&!physioLvAge){
+    const ageDecayFinal=physioLvAge?0:(hasNutritionist?ageDecayAnnuo*0.5:ageDecayAnnuo);
+    if(ageDecayFinal>0){
       const PHYS_STATS=["servizio","dritto","rovescio","volee","velocita","resistenza"];
-      const decayPerStatPerWeek=ageDecayAnnuo/52/PHYS_STATS.length;
+      const decayPerStatPerWeek=ageDecayFinal/52/PHYS_STATS.length;
       const agedStats={...updPlayer.stats};
       PHYS_STATS.forEach(sk=>{
         agedStats[sk]=parseFloat(Math.max(1,(agedStats[sk]||1)-decayPerStatPerWeek).toFixed(2));
       });
       updPlayer={...updPlayer,stats:agedStats};
+    }
+    // Centro di allenamento privato: +1 stat/sett su una stat casuale (effetto simile a sparring base)
+    // Applicato indipendentemente dalla presenza dello sparring staff
+    if(hasCenter){
+      const csk=STAT_KEYS[Math.floor(Math.random()*STAT_KEYS.length)];
+      updPlayer={...updPlayer,stats:{...updPlayer.stats,[csk]:parseFloat(clamp((updPlayer.stats[csk]||0)+0.10,1,35).toFixed(2))}};
+    }
+    // Fondazione: floor morale a 35 — non può scendere sotto questa soglia
+    if(hasInvestment(p,"foundation")){
+      setMorale(m=>Math.max(m,35));
     }
     // Morale: override se presente, altrimenti decay
     // Decay si applica SEMPRE se morale >70 (anche dopo torneo: evita persistenza post-titolo)
@@ -5943,7 +6176,9 @@ function GameScreen({gs}){
     if(nw>51){nw=1;ny=year+1;
       updPlayer={...updPlayer,age:(updPlayer.age||(player.startAge||17))+1,fatigue:Math.round(Math.max(0,(updPlayer.fatigue||0)-20))};
       notify("Fine stagione "+(2025+(ny-2))+"! "+updPlayer.name+" ha "+updPlayer.age+" anni.","#8b5cf6");
-      setMorale(m=>clamp(Math.round(m*0.6+50*0.4),20,80));
+      // Fondazione: +5 morale permanente all'inizio di ogni stagione
+      const foundationBonus=hasInvestment(p,"foundation")?5:0;
+      setMorale(m=>clamp(Math.round(m*0.6+50*0.4)+foundationBonus,20,85));
       setWinterDone(false);
     }
     // Rolling 52 weeks: sottrai i punti guadagnati nella stessa settimana dell'anno scorso
@@ -6104,7 +6339,9 @@ function GameScreen({gs}){
     const lodgeCost=(LODGE_BASE[t.type]||0)+(LODGE_COLLAB[t.type]||0)*nCollab;
     const physioLv=getStaffLevel(staff,"physio");
     const physioReduce=physioLv?physioLv.jetLagReduce:0;
-    const jetLag=Math.round(calcJetLag(pZone,tZone,player.money||0)*(1-physioReduce));
+    const jetInvestmentReduce=hasInvestment(player,"jet")?0.5:0; // jet privato: -50% jet-lag aggiuntivo
+    const combinedReduce=Math.min(0.95,physioReduce+jetInvestmentReduce);
+    const jetLag=Math.round(calcJetLag(pZone,tZone,player.money||0)*(1-combinedReduce));
     // Applica riposo -30% fatica se scelto
     const fatAfterPack=Math.max(0,(player.fatigue||0)-packFat);
     if(packFat>0)notify(`💆 Trattamento recupero — fatica −${packFat}%`,"#38bdf8");
@@ -6484,9 +6721,11 @@ function GameScreen({gs}){
       if(ageWin<38) return 1.20;
       return 1.80;
     })();
-    if(ageDecayWin>0&&!physioLvWin){
+    const hasNutritionistWin=hasInvestment(player,"nutritionist");
+    const ageDecayWinFinal=physioLvWin?0:(hasNutritionistWin?ageDecayWin*0.5:ageDecayWin);
+    if(ageDecayWinFinal>0){
       const PHYS_STATS_W=["servizio","dritto","rovescio","volee","velocita","resistenza"];
-      const decayPerStatWin=ageDecayWin*8/52/PHYS_STATS_W.length;
+      const decayPerStatWin=ageDecayWinFinal*8/52/PHYS_STATS_W.length;
       PHYS_STATS_W.forEach(sk=>{
         decayStats[sk]=parseFloat(Math.max(1,(decayStats[sk]||1)-decayPerStatWin).toFixed(2));
       });
@@ -6576,6 +6815,15 @@ function GameScreen({gs}){
   function handleFire(key){
     setStaff(s=>({...s,[key]:0}));
     notify(STAFF_LEVELS[key].name+" licenziato.","#64748b");
+  }
+  function handleInvest(key){
+    const def=INVESTMENTS[key];
+    if(!def) return;
+    if(hasInvestment(player,key)){notify("Già acquistato.","#64748b");return;}
+    if((player.money||0)<def.cost){notify("Budget insufficiente.","#ef4444");return;}
+    if(def.rankGate&&(player.rank||500)>def.rankGate){notify(`Disponibile da rank ≤${def.rankGate}.`,"#ef4444");return;}
+    setPlayer(p=>({...p,money:(p.money||0)-def.cost,investments:{...(p.investments||{}),[key]:year}}));
+    notify(`${def.icon} ${def.name} acquistato!`,"#10b981");
   }
 
   function getLiveBracket(t){
@@ -6893,7 +7141,7 @@ function GameScreen({gs}){
       return<WinterBlockScreen player={player} staff={staff} week={week} year={year} onConfirm={handleWinterConfirm} morale={morale}/>;
     return<TrainingScreen player={player} staff={staff} onTrain={handleTrain} onFinish={handleTrainFinish} trainCount={trainCount} week={week} morale={morale}/>;
   }
-  if(view==="staff")return<StaffScreen player={player} staff={staff} onHire={handleHire} onFire={handleFire} onBack={()=>setView("cal")} onSponsor={()=>setView("sponsor")}/>;
+  if(view==="staff")return<StaffScreen player={player} staff={staff} year={year} onHire={handleHire} onFire={handleFire} onInvest={handleInvest} onBack={()=>setView("cal")} onSponsor={()=>setView("sponsor")}/>;
   if(view==="sponsor")return<SponsorScreen player={player} week={week} year={year} sponsor={sponsor} onActivate={(s,amount)=>{setSponsor(s);setPlayer(p=>({...p,money:(p.money||0)+amount}));notify(`💼 ${s.company}: +€${amount.toLocaleString("it-IT")} accreditati!`,"#818cf8");setView("staff");}} onBack={()=>setView("staff")}/>;
 
   const fat=player.fatigue||0;
@@ -8482,7 +8730,7 @@ function App(){
     const startRank=startPts>0?rankForAtpPts(startPts):400;
     const state={week:1,year:1,brackets:{},activeTour:null,tourRound:0,weekDone:false,staff:{},morale:50,atpWorld:w,sponsor:null,
       gameMode:pd.gameMode||"classic",
-      player:{...pd,rank:startRank,atpPoints:startPts,money:budget,fatigue:0,age,wins:0,losses:0,titles:0,history:[],careerStats:{},careerStartRank:startRank,bestRankEver:startRank,currentZone:(NATS.find(n=>n.c===pd.nationality)?.z||"Europa"),homeZone:(NATS.find(n=>n.c===pd.nationality)?.z||"Europa")}};
+      player:{...pd,rank:startRank,atpPoints:startPts,money:budget,fatigue:0,age,wins:0,losses:0,titles:0,history:[],careerStats:{},careerStartRank:startRank,bestRankEver:startRank,currentZone:(NATS.find(n=>n.c===pd.nationality)?.z||"Europa"),homeZone:(NATS.find(n=>n.c===pd.nationality)?.z||"Europa"),investments:{}}};
     saveL(state);setGs(state);setScreen("game");
   }
   function resume(){const s=loadL();if(s){const migratedWorld=migrateWorldPool(s.atpWorld||{});const migrated={...s,atpWorld:migratedWorld};saveL(migrated);setGs(migrated);setScreen("game");}}
