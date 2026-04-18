@@ -246,8 +246,8 @@ function calcJetLag(fz,tz,budget){
   if(!fz||fz===tz)return 0;
   const vl=[["Americas","Asia-Pacifico"],["Asia-Pacifico","Americas"],["Americas","Africa-MO"],["Africa-MO","Americas"]];
   const isInter=vl.some(([a,b])=>a===fz&&b===tz);
-  if(isInter){const comfort=Math.min(5,Math.floor((budget||0)/5000));return 22-comfort;}
-  return 12;
+  if(isInter){const comfort=Math.min(5,Math.floor((budget||0)/5000));return 18-comfort;}
+  return 10;
 }
 
 // ── ARCHETIPI NPC — profili carriera ─────────────────────────────────────
@@ -6472,12 +6472,11 @@ function GameScreen({gs}){
     const setsPlayed=sets.length;
     // Resistenza riduce la fatica: ogni 5pt sopra 15 = -0.5% per set
     const resBonus=Math.max(0,((player.stats.resistenza||15)-15)/5)*0.5;
-    const fatPerSet=Math.max(2, 6-resBonus);
+    const fatPerSet=Math.max(2, 5-resBonus);
     const fatGain=Math.round(setsPlayed*fatPerSet);
     const nr=r+1;
     const isExit=!won||(nr>=totalRounds);
-    // Recupero -5% tra round: 1-2 giorni di riposo tra un match e il successivo in torneo
-    const roundRecovery=(!isExit&&won)?5:0;
+    const roundRecovery=(!isExit&&won)?7:0;
     // Calcola la nuova history con cap a 30 tornei (unità naturale di cancellazione)
     const _newHistEntry={week,year,tournament:activeTour.name,type:activeTour.type,surface:activeTour.surface,result:won?"V":"S",round:getRoundName(r,totalRounds),prize:isExit?prz:0,pts:isExit?pts:0,isExit,opp:{name:matchData.opp.name,rank:matchData.opp.rank,nat:matchData.opp.nat||""},sets:sets.map(s=>({pg:s.pg,og:s.og,w:s.w}))};
     const _histFull=[...(player.history||[]),_newHistEntry];
