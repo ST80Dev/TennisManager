@@ -5889,7 +5889,10 @@ function GameScreen({gs}){
 
     // Infortuni logici: fatica alta (anni 1+, peso ridotto)
     // Non scattano subito dopo aver vinto un torneo (assurdo narrativamente)
-    if(!yr1Only&&!blockedCats.has("injury")&&!justWonTournament){
+    // Gate probabilistico 12%: solo il 12% delle settimane affaticate valuta infortuni.
+    // Senza questo gate il weighted sample selezionava SEMPRE un candidato → ~3 infortuni/stagione.
+    // Col gate: ~1.8/stagione senza preparatore, ~1.4 con (simulato su 50k stagioni).
+    if(!yr1Only&&!blockedCats.has("injury")&&!justWonTournament&&Math.random()<0.12*injMult){
       if(fat>72) logicalCandidates.push({cat:"injury",id:"inj_serious",w:0.08*ym*injMult});
       if(fat>60) logicalCandidates.push({cat:"injury",id:"inj_back",w:0.12*ym*injMult});
       if(fat>52) logicalCandidates.push({cat:"injury",id:"inj_shoulder",w:0.09*ym*injMult});
@@ -5914,7 +5917,7 @@ function GameScreen({gs}){
     if(!yr1Only&&!blockedCats.has("form")&&!justWonTournament){
       if(consTourns>=6) logicalCandidates.push({cat:"form",id:"form_burnout",w:0.25*ym});
     }
-    if(!yr1Only&&!blockedCats.has("injury")&&!justWonTournament){
+    if(!yr1Only&&!blockedCats.has("injury")&&!justWonTournament&&Math.random()<0.12*injMult){
       if(consTourns>=5) logicalCandidates.push({cat:"injury",id:"inj_wrist",w:0.10*ym*injMult});
     }
 
@@ -5994,11 +5997,11 @@ function GameScreen({gs}){
           else if(catRoll<0.85) evtCat="form";
           else                  evtCat="positive";
         } else {
-          if(catRoll<0.25)      evtCat="injury";
-          else if(catRoll<0.50) evtCat="logistics";
-          else if(catRoll<0.72) evtCat="form";
-          else if(catRoll<0.88) evtCat="positive";
-          else                  evtCat="color";
+          if(catRoll<0.15)      evtCat="injury";    // 15% (era 25%): infortuni dal dado puro ridotti
+          else if(catRoll<0.42) evtCat="logistics"; // 27%
+          else if(catRoll<0.65) evtCat="form";      // 23%
+          else if(catRoll<0.82) evtCat="positive";  // 17% (aumentati: compensano la riduzione injury)
+          else                  evtCat="color";     // 18%
         }
         // Blocca se categoria in cooldown o già attiva
         if(blockedCats.has(evtCat)||activeCats.has(evtCat)){evtCat=null;}
