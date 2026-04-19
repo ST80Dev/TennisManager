@@ -1,6 +1,7 @@
 # ATP CAREER MANAGER — NOTE DI PROGETTO
-# Aggiornato: Aprile 2026 (sessioni 48-49)
+# Aggiornato: Aprile 2026 (sessioni 48-50)
 # Da allegare insieme ad index.html all'inizio di ogni nuova sessione
+# File progetto: index.html + npc_system.js (sess.50)
 
 ═══════════════════════════════════════════════════════════
 PRASSI OPERATIVE — LEGGERE PRIMA DI TUTTO
@@ -27,10 +28,16 @@ PRASSI OPERATIVE — LEGGERE PRIMA DI TUTTO
 DESCRIZIONE DEL PROGETTO
 ═══════════════════════════════════════════════════════════
 
-Gioco browser single-file (HTML + React inline + Babel) di gestione carriera
-tennistica ATP. Nessun server, nessuna dipendenza esterna, file unico.
+Gioco browser (HTML + React inline + Babel) di gestione carriera tennistica ATP.
+Nessun server, nessuna dipendenza esterna tranne CDN React/Babel.
 Salvataggio: localStorage (chiave "atp_career_v3").
-File attivo: index.html
+File attivi:
+  • index.html     — UI React + game loop + world init
+  • npc_system.js  — sistema NPC (archetypes, lifecycle, talent, career phase,
+                      early retirement, newgen generation) — sess.50
+Caricato via <script src="npc_system.js"> PRIMA del blocco Babel.
+Esporta window.NPC_SYSTEM, destrutturato in index.html sotto i vecchi nomi
+(getNPCArchetype, getNPCRetireAge, ecc.) per minimizzare l'impatto.
 
 ═══════════════════════════════════════════════════════════
 STACK TECNICO
@@ -129,16 +136,71 @@ BUDGET INIZIALE PER ETÀ:
   Punti ATP iniziali: 15=0 · 16=12 · 17=26 · 18=40 · 19=81
   Pool stat iniziale: 15=35pt · 16=42 · 17=50 · 18=55 · 19=60
 
-SISTEMA NPC — PACCHETTO B (implementato sess.46):
-  npcPersonalLevel[id]: dizionario globale persistente tra settimane
-  initRank: campo immutabile su ogni NPC
-  A isNewYear: drift personalLevel per archetype
-    Costante ±8% · Tardivo ±10% · Progressivo ±12% · Precoce ±15% · Volatile ±20%
-  Floor/ceiling ASSOLUTI di carriera:
-    floor = atpPtsForRank(min(400, initRank×8))
-    ceiling = atpPtsForRank(max(1, initRank÷3))
+SISTEMA NPC — PACCHETTO C (refactor sess.50, vedi npc_system.js):
+  Codice estratto in npc_system.js. Aliasato in index.html ai vecchi nomi.
+
+  TALENTO (nuovo, sostituisce initRank/3 e initRank*8):
+    7 tiers, ciascuno con ceilRank/floorRank ASSOLUTI:
+      Legend   ceil 1   floor 18
+      Elite    ceil 3   floor 35
+      Great    ceil 8   floor 65
+      VeryGood ceil 15  floor 130
+      Good     ceil 35  floor 220
+      Solid    ceil 85  floor 360
+      Journeyman ceil 180 floor 500
+    Tier originali (ATP400) → dedotto da initRank.
+    Tier newgen (replacement) → distribuzione random pesata:
+      3% Legend · 6% Elite · 11% Great · 15% VeryGood · 20% Good · 25% Solid · 20% Journeyman
+    Hidden talent: 10% degli NPC rank 41-200 ricevono upgrade di un tier
+      → candidati breakout (rank 80 Good → VeryGood → ceil 15).
+    API: getNPCCareerBounds(npcId, initRank) → {tier, ceilPts, floorPts}
+
+  CAREER PHASE (nuovo, pluriennale):
+    steady (default) · breakthrough (+drift ×1.6, bias +0.65) ·
+    slump (+drift ×1.5, bias -0.65)
+    Transizioni a isNewYear:
+      steady → breakthrough: 9% (<26) · 4% (26-29) · 1% (30+)
+      steady → slump:        3% (<28) · 6% (28-31) · 9% (32+)
+      breakthrough → steady: 28%/anno
+      slump → steady:        22%/anno
+    Stato: npcCareerPhase[id] (persistito in save come gs.npcState.careerPhase)
+
+  RETIREMENT (esteso):
+    Base distribution (getRetireAge):
+      30% 32-34 · 55% 35-37 · 12% 38-40 · 3% 41-43
+    Early retirement stocastica (shouldEarlyRetire):
+      age≥25: +0.4%  · age≥30: +0.6%  · age≥33: +1.0% (infortunio)
+      age≥27 + 3+ anni fuori top150: +12% (burnout)
+      age≥29 + 2+ anni fuori top250: +18% (decisione)
+      age≥32 + rank>200: +10%
+      age≥35 + rank>100: +15%
+    Contatori: npcYearsOutside150[id], npcYearsOutside250[id]
+    Tutti persistiti in gs.npcState.
+
+  NEWGEN (replacement) — rank di partenza graduato dal tier:
+    Legend 180-250 · Elite 240-330 · Great 280-370 · VeryGood 320-390
+    Good 350-400 · Solid/Journeyman 370-400
+    Età: Legend/Elite 16-19 · altri 17-19
+
+  GAIN CAP (più aggressivo per i giovani):
+    rank≤10: 500 · ≤30: 200 · ≤80: 95 · ≤150: 42 · ≤250: 22 · altri: 14
+    Bonus giovani: <21 ×3.0 · <24 ×2.0 · <27 ×1.3 (nuovo)
+
   MR: rank≤20: 0.050 · rank≤100: 0.035 · rank≤300: 0.045 · altri: 0.060
   Pool fisso Phase 3b: NPC_FIXED_POOL = 206.347 (costante)
+
+RANK COLLISION — FIX (sess.50):
+  Bug: player.rank poteva coincidere con rank di un NPC esistente
+       (es. giocatore #5 e NPC Alcaraz anch'esso #5).
+  Causa: player.rank calcolato come "NPC con più pts + 1", senza riassegnare
+         il rank degli NPC sottostanti.
+  Fix:  shiftNpcRanksForPlayer(world, playerRank, playerPts) chiamato dopo
+        ogni simWeek, dopo migrateWorldPool, dopo "Rigenera ATP Rankings".
+        Risultato: world ha NPC in ranks {1..501}\{playerRank}, giocatore
+        occupa playerRank. Zero collisioni.
+  Fallback getATPPlayer: se rank lookup cade sul gap, ritorna NPC vicino
+        invece di generarne uno fittizio con rank collidente.
+  Condizione: nessuno shift se playerPts<5 (giocatore FC).
 
 MODALITÀ DI GIOCO (gameMode — introdotta sess.49):
   "classic"  — NPC invecchiano, decadono fisicamente e si ritirano normalmente.
@@ -233,6 +295,19 @@ BUG RISOLTI — EVITARE REGRESSIONI
 65. MATCHIDX MANCANTE NEI MATCH (sess.49): DrawScreen usava m.matchIdx
     non presente nella struttura bracket. Fix: usa indice forEach (mi).
 
+66. NPC RUNTIME STATE NON PERSISTITO (sess.50): npcForm, npcPersonalLevel
+    (e ora npcCareerPhase, npcYearsOutside150/250) erano dict module-level
+    resettati ad ogni reload → il drift cumulativo veniva perso. Spiega
+    perché dopo 6 anni la top 30 cambiava poco: ogni save/reload ripartiva
+    dai valori iniziali.
+    Fix: useEffect di save include npcState={form,personalLevel,careerPhase,
+    yearsOut150,yearsOut250}. useEffect di mount ripristina da gs.npcState.
+
+67. COLLISIONE RANK GIOCATORE-NPC (sess.50): player.rank poteva coincidere
+    con il rank di un NPC (giocatore #5 e Alcaraz #5 entrambi visibili).
+    Fix: shiftNpcRanksForPlayer applicato dopo ogni aggiornamento world.
+    getATPPlayer gestisce il gap al rank del giocatore ritornando NPC vicino.
+
 ═══════════════════════════════════════════════════════════
 DECISIONI DI DESIGN
 ═══════════════════════════════════════════════════════════
@@ -272,6 +347,27 @@ MODIFICHE — CRONOLOGIA RECENTE
 - Rimosso pulsante 📋 (bracket viewer) dall'header MatchScreen
 - Pannello win% rimane visibile a fine match (rimossa condizione !result)
 - Rimosso riquadro "Log ultimo game" (lastEvent) dal MatchScreen
+
+--- SESS.50 ---
+- REFACTOR NPC SYSTEM: estratto in npc_system.js (plain JS, loaded via
+  <script src>). Espone window.NPC_SYSTEM, destrutturato in index.html
+  ai vecchi nomi (getNPCArchetype, getNPCRetireAge, ecc.).
+- NUOVO SISTEMA TALENTO: 7 tiers con ceilRank/floorRank assoluti. Sostituisce
+  la vecchia logica initRank/3 (ceiling) e initRank*8 (floor). Hidden talent
+  10% nella fascia 41-200 produce breakout candidates.
+- CAREER PHASE pluriennale: steady/breakthrough/slump con transizioni a
+  isNewYear. Modula il drift annuale (magnitude ×1.5-1.6 + bias segno).
+- EARLY RETIREMENT stocastica: infortunio, burnout mentale, decisione
+  personale. Riduce il lock-in della top 30 reale attuale.
+- NEWGEN upgrade: rank di partenza graduato dal tier (Legend 180-250 vs
+  vecchio 370-400 fisso). Età 16-19 per top tier.
+- RETIREMENT distribution più ampia: 30% 32-34 · 55% 35-37 · 12% 38-40 · 3% 41-43
+- GAIN CAP bonus giovani esteso: <27 ×1.3 (nuovo fascia).
+- FIX RANK COLLISION: shiftNpcRanksForPlayer garantisce che player.rank
+  mai coincida con un rank NPC. Applicato in advanceWeek, migrate, rigenera.
+- PERSISTENZA NPC STATE: npcForm, npcPersonalLevel, npcCareerPhase,
+  npcYearsOutside150/250 salvati in gs.npcState. Senza, il drift si
+  perdeva ad ogni reload.
 
 --- SESS.49 ---
 - ATP250 rankCeiling: 100 → 60 (rank 61-100 accede ad ATP250)

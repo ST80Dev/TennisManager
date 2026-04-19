@@ -7,6 +7,7 @@
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="npc_system.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #fff; }
@@ -250,59 +251,21 @@ function calcJetLag(fz,tz,budget){
   return 10;
 }
 
-// ── ARCHETIPI NPC — profili carriera ─────────────────────────────────────
-// [peak_age, decline_onset, resilience, volatility]
-const NPC_ARCHETYPES = {
-  Precoce:     {peak_age:22, decline_onset:26, resilience:0.55, volatility:0.18},
-  Progressivo: {peak_age:26, decline_onset:30, resilience:0.70, volatility:0.12},
-  Tardivo:     {peak_age:28, decline_onset:33, resilience:0.75, volatility:0.10},
-  Costante:    {peak_age:25, decline_onset:31, resilience:0.80, volatility:0.08},
-  Volatile:    {peak_age:24, decline_onset:29, resilience:0.50, volatility:0.30},
-};
-// Archetipi fissi per i top 10 reali (per rank iniziale)
-const NPC_FIXED_ARCHETYPE = {
-  1:"Progressivo", // Sinner
-  2:"Precoce",     // Alcaraz
-  3:"Tardivo",     // Djokovic
-  4:"Costante",    // Zverev
-  5:"Costante",    // Medvedev
-  6:"Progressivo", // Ruud
-  7:"Precoce",     // Rune
-  8:"Volatile",    // Rublev
-  9:"Costante",    // Fritz
-  10:"Progressivo",// Humbert
-};
-function getNPCArchetype(rank){
-  if(NPC_FIXED_ARCHETYPE[rank]) return NPC_ARCHETYPES[NPC_FIXED_ARCHETYPE[rank]];
-  // Rank 11-200: assegnato in base a rank+seed (deterministico, non casuale)
-  const keys=Object.keys(NPC_ARCHETYPES);
-  return NPC_ARCHETYPES[keys[Math.abs(rank*31+7)%keys.length]];
-}
-// Calcola moltiplicatore forma NPC: 0.75 – 1.20
-// Dipende da: distanza dall'età picco, inerzia (forma settimana prec.)
-// npcForm[id] = valore forma corrente, aggiornato in simWeek
-const npcForm = {}; // {[npcId]: float 0.75-1.20}
-// npcPersonalLevel[id] = livello stagionale NPC (attrattore MR), aggiornato a isNewYear
-// Inizializzato a atpPtsForRank(initRank), deriva ±8-20%/anno per archetype
-const npcPersonalLevel = {}; // {[npcId]: float}
-function calcFormMult(p, arch){
-  const age = p.age || 25;
-  const dist = age - arch.peak_age;
-  // Curva: prima del picco cresce, dopo declina — più rapido oltre decline_onset
-  let base;
-  if(dist <= 0){
-    // Verso il picco: leggero boost crescente
-    base = 1.0 + Math.min(0.12, (-dist) * 0.015);
-  } else if(age <= arch.decline_onset){
-    // Plateau post-picco: lieve calo
-    base = 1.0 - dist * 0.02;
-  } else {
-    // Declino reale: calo accelerato
-    const overDecline = age - arch.decline_onset;
-    base = (1.0 - dist * 0.02) - overDecline * arch.resilience * 0.03;
-  }
-  return Math.max(0.75, Math.min(1.20, base));
-}
+// ── NPC SYSTEM — vedi npc_system.js ──────────────────────────────────
+// Archetipi, lifecycle, talento, fasi di carriera e ritiro anticipato
+// sono esternalizzati in npc_system.js (caricato prima del blocco Babel).
+// Qui destrutturiamo i simboli esportati sotto i vecchi nomi.
+if(!window.NPC_SYSTEM){throw new Error("NPC_SYSTEM non caricato: verificare <script src=\"npc_system.js\">");}
+const NPC_ARCHETYPES       = window.NPC_SYSTEM.ARCHETYPES;
+const NPC_FIXED_ARCHETYPE  = window.NPC_SYSTEM.FIXED_ARCHETYPE;
+const getNPCArchetype      = window.NPC_SYSTEM.getArchetype;
+const calcFormMult         = window.NPC_SYSTEM.calcFormMult;
+// Stato runtime (persistito in save)
+const npcForm = {};          // {[npcId]: float 0.75-1.20}
+const npcPersonalLevel = {}; // {[npcId]: float}  — attrattore MR
+const npcCareerPhase = {};   // {[npcId]: "steady"|"breakthrough"|"slump"}
+const npcYearsOutside150 = {}; // {[npcId]: int}
+const npcYearsOutside250 = {}; // {[npcId]: int}
 const TRAVEL_COSTS_BASE={Slam:8000,M1000:4000,ATP500:2000,ATPFinals:2000,ATP250:1200,ChallengerA:550,ChallengerB:380,ITF:200};
 const ENTRY_FEE={ITF:30,ChallengerB:80,ChallengerA:300,ATP250:1000,ATP500:2700,ATPFinals:2700,M1000:6000,Slam:10000};
 const LODGE_BASE={ChallengerA:100,ChallengerB:75,ITF:50,ATP250:400,ATP500:1000,ATPFinals:1000,M1000:2500,Slam:5000};
@@ -1534,6 +1497,12 @@ function buildWorld(){
 
 function getATPPlayer(world,rank){
   if(world[rank])return world[rank];
+  // World con gap al rank del giocatore (sess.50): ritorna NPC adiacente
+  // invece di generare un NPC fittizio che collliderebbe col giocatore.
+  if(world && Object.keys(world).length>100){
+    if(world[rank+1]) return world[rank+1];
+    if(world[rank-1]) return world[rank-1];
+  }
   const base=rank<=4?33.5:rank<=8?31.5-(rank-4)*0.30:rank<=20?30.2-(rank-8)*0.35:rank<=50?27.5-(rank-20)*0.22:rank<=80?21.5-(rank-50)*0.133:rank<=100?14.5+(100-rank)*0.40:rank<=150?14.5-(rank-100)*0.055:rank<=200?11.75-(rank-150)*0.035:rank<=250?10.0-(rank-200)*0.018:rank<=300?9.1-(rank-250)*0.016:rank<=350?8.3-(rank-300)*0.014:rank<=400?Math.max(7.0,7.6-(rank-350)*0.012):Math.max(5.5,8.0-(rank-400)*0.025);
   const floor=rank<=4?28:rank<=8?25:rank<=20?21:rank<=50?17:rank<=100?13:rank<=150?11:rank<=200?9:rank<=250?8:rank<=400?7:Math.max(5,Math.floor(base-1.5));
   const stats={};
@@ -1555,116 +1524,52 @@ function npcEffectiveStat(id, currentRank){
   return stats;
 }
 
-// ── NPC AGEING & RETIREMENT SYSTEM ─────────────────────────────────────
-// get_retire_age: età ritiro estratta deterministicamente dall'ID NPC
-// Distribuzione: 20% ritiro precoce 33-35, 50% normale 36-38,
-//               25% longevo 39-41, 5% leggenda 42-44
-function getNPCRetireAge(npcId){
-  const id=parseInt((npcId||"p400").replace("p",""))||400;
-  // seed deterministico: stesso NPC sempre stessa età ritiro
-  let h=id*6173+99991; h=(h^(h>>>16))*0x45d9f3b; h=(h^(h>>>16))&0x7fffffff;
-  const r=(h%1000)/1000;
-  if(r<0.25) return 33+Math.floor((h%3));
-  if(r<0.90) return 36+Math.floor((h%3));
-  return 39+Math.floor((h%3));
-}
-
-// getNPCAgeParams: parametri età per win_mod, drift_mod, skip_prob
-// char personale [-1,+1] estratto dall'ID — stabile per tutta la carriera
-function getNPCAgeParams(npcId, age){
-  const id=parseInt((npcId||"p400").replace("p",""))||400;
-  let h=id*7919+31337; h=(h^(h>>>16))*0x45d9f3b; h=(h^(h>>>16))&0x7fffffff;
-  const char=((h%1000)/500)-1.0; // [-1,+1]
-  // win_mod: media per fascia + spread personale
-  let bw,sw;
-  if(age<20)      {bw=+0.020;sw=0.035;}
-  else if(age<22) {bw=+0.018;sw=0.025;}
-  else if(age<24) {bw=+0.006;sw=0.016;}
-  else if(age<27) {bw= 0.000;sw=0.010;}
-  else if(age<30) {bw=-0.018;sw=0.014;}
-  else if(age<32) {bw=-0.038;sw=0.020;}
-  else if(age<35) {bw=-0.062;sw=0.028;}
-  else            {bw=-0.095;sw=0.040;}
-  const win_mod=bw+char*sw;
-  // drift_mod: bonus/malus settimanale punti
-  let bd,sd;
-  if(age<20)      {bd=+0.0018;sd=0.0018;}
-  else if(age<22) {bd=+0.0010;sd=0.0012;}
-  else if(age<24) {bd=+0.0003;sd=0.0007;}
-  else if(age<27) {bd= 0.0000;sd=0.0005;}
-  else if(age<30) {bd=-0.0009;sd=0.0007;}
-  else if(age<32) {bd=-0.0020;sd=0.0012;}
-  else if(age<35) {bd=-0.0035;sd=0.0018;}
-  else            {bd=-0.0055;sd=0.0025;}
-  const drift_mod=bd+char*sd;
-  // skip_prob: prob di saltare un torneo (veterani saltano di più)
-  let bs,ss;
-  if(age<27)      {bs=0.00;ss=0.00;}
-  else if(age<30) {bs=0.06;ss=0.04;}
-  else if(age<32) {bs=0.15;ss=0.07;}
-  else if(age<35) {bs=0.27;ss=0.11;}
-  else if(age<38) {bs=0.42;ss=0.15;}
-  else            {bs=0.58;ss=0.18;}
-  const skip_prob=Math.max(0,Math.min(0.80,bs-char*ss));
-  return{win_mod,drift_mod,skip_prob,char};
-}
-
-// getNPCDecayRate: decay settimanale punti per fascia rank
-function getNPCDecayRate(rank){
-  if(rank<=15)  return 0.9968;
-  if(rank<=50)  return 0.9972;
-  if(rank<=150) return 0.9978;
-  return 0.9982;
-}
-
-// getNPCGainCap: cap guadagno settimanale in punti assoluti
-// Giovani (<24) ricevono bonus al cap per accelerare scalata ranking
-function getNPCGainCap(rank,age){
-  let cap;
-  if(rank<=10)  cap=500;
-  else if(rank<=30)  cap=200;
-  else if(rank<=80)  cap=90;
-  else if(rank<=150) cap=38;
-  else if(rank<=250) cap=18;
-  else cap=12;
-  // Bonus giovani: ×2.5 sotto i 21, ×1.8 sotto i 24
-  if(age!=null&&age<21) return Math.round(cap*2.5);
-  if(age!=null&&age<24) return Math.round(cap*1.8);
-  return cap;
-}
+// ── NPC LIFECYCLE / TALENT — alias da NPC_SYSTEM (vedi npc_system.js) ──
+const getNPCRetireAge = window.NPC_SYSTEM.getRetireAge;
+const getNPCAgeParams = window.NPC_SYSTEM.getAgeParams;
+const getNPCDecayRate = window.NPC_SYSTEM.getDecayRate;
+const getNPCGainCap   = window.NPC_SYSTEM.getGainCap;
 
 // Moltiplicatori guadagno punti per tier
 const NPC_PTS_MULT={Slam:0.22,M1000:0.24,ATP500:0.30,ATPFinals:0.30,ATP250:0.40,ChallengerA:0.68,ChallengerB:0.78,ITF:0.88};
 
-// Talento newgen: ceiling deterministico basato su npcId
-// Applica solo a replacement (initRank>=350). Per originali usa logica initRank/3.
-// Distribuzione: 5% generazionale (top5), 10% grande (top15), 20% buono (top40),
-// 30% medio (top80), 35% filler (top150)
-function getNPCTalentCeiling(npcId,initRank){
-  if(initRank<350) return null; // giocatore originale: usa logica standard
-  const id=parseInt((npcId||"p400").replace(/\D/g,""))||400;
-  let h=id*8291+55771; h=(h^(h>>>16))*0x45d9f3b; h=(h^(h>>>16))&0x7fffffff;
-  const r=(h%1000)/1000;
-  if(r<0.05) return atpPtsForRank(1+Math.floor((h>>>8)%5));   // 5%: top 1-5
-  if(r<0.15) return atpPtsForRank(6+Math.floor((h>>>8)%10));  // 10%: top 6-15
-  if(r<0.35) return atpPtsForRank(16+Math.floor((h>>>8)%25)); // 20%: top 16-40
-  if(r<0.65) return atpPtsForRank(41+Math.floor((h>>>8)%40)); // 30%: top 41-80
-  return atpPtsForRank(81+Math.floor((h>>>8)%70));             // 35%: top 81-150
+// Ceiling/Floor di carriera basati sul TALENTO (sess.50).
+// Sostituisce la vecchia logica initRank/3 (ceiling) e initRank*8 (floor):
+// un rank 80 "Good" può raggiungere #35, un rank 40 "VeryGood" può arrivare #15,
+// un rank 10 "Elite" se perde momentum può cadere a #35.
+// Hidden talent 10% nella fascia 41-200 → upgrade di un tier.
+function getNPCCareerBounds(npcId, initRank){
+  const isNewgen=initRank>=300; // replacement (newgen 300+) usa distribuzione random
+  const t=window.NPC_SYSTEM.getTalent(npcId, initRank, isNewgen);
+  return {
+    tier: t.tier,
+    ceilPts: atpPtsForRank(Math.max(1, t.ceilRank)),
+    floorPts: atpPtsForRank(Math.min(500, t.floorRank)),
+  };
 }
 
-// Genera un NPC di sostituzione giovane (17-19 anni, rank 370-400)
+// Genera un NPC di sostituzione giovane.
+// Rank di partenza graduato dal talento (sess.50):
+// Legend 180-250 · Elite 240-330 · Great 280-370 · VeryGood 320-390
+// Good 350-400 · Solid/Journeyman 370-400.
+// Età 16-19 — talenti generazionali possono entrare a 16.
 let _npcReplacementCounter=0;
 function generateReplacementNPC(year,week){
   _npcReplacementCounter++;
   const seed=year*10000+week*100+_npcReplacementCounter;
-  let h=seed*6173+12345; h=(h^(h>>>16))*0x45d9f3b; h=(h^(h>>>16))&0x7fffffff;
-  const age=17+Math.floor((h%3)); // 17-19
-  const rank=370+Math.floor(((h*31)%31)); // 370-400
+  const id=`pR${year}_${_npcReplacementCounter}`;
+  // Roll del tier prima del rank → coerenza tier ↔ rank di partenza
+  const tier=window.NPC_SYSTEM.tierFromRandom(id);
+  const rank=window.NPC_SYSTEM.newgenStartingRank(tier, seed);
+  // Età: talenti top entrano più giovani (16-19 vs 17-19)
+  const ageH=window.NPC_SYSTEM.mix(seed*911+17);
+  const ageRange=(tier==="Legend"||tier==="Elite")?4:3;
+  const ageBase=(tier==="Legend"||tier==="Elite")?16:17;
+  const age=ageBase+Math.floor((ageH%ageRange));
   const pts=atpPtsForRank(rank);
   const g=genNameFromSeed(seed);
-  const id=`pR${year}_${_npcReplacementCounter}`;
   const stats=npcEffectiveStat(id,rank);
-  return{id,rank,initRank:rank,name:g.name,age,nat:g.nat,stats,atpPoints:pts,isReplacement:true};
+  return{id,rank,initRank:rank,name:g.name,age,nat:g.nat,stats,atpPoints:pts,isReplacement:true,talentTier:tier};
 }
 
 // Costruisce un draw con seeding ATP corretto — sess.43
@@ -1930,7 +1835,7 @@ function simWeek(weekNum,world,yearNum,extraOpts={}){
   const ts=CAL.filter(t=>t.week===weekNum);
   const isNewYear=weekNum===1;
 
-  // ── Phase 0: avanzamento eta e ritiro NPC (solo a inizio anno) ──
+  // ── Phase 0: avanzamento eta, ritiri, transizioni career phase ──
   const retiredIds=new Set();
   const replacements=[];
   // In modalità Leggenda gli NPC non invecchiano né si ritirano mai
@@ -1938,18 +1843,49 @@ function simWeek(weekNum,world,yearNum,extraOpts={}){
   if(isNewYear&&yearNum>1&&!isLegendMode){
     Object.values(world).forEach(p=>{
       const newAge=(p.age||25)+1;
-      // aggiorna eta in world prima di processare
       world[p.rank]={...p,age:newAge};
     });
+    // Ritiri: età base + stocastici (infortuni, burnout mentale, decisione)
     Object.values(world).forEach(p=>{
       const age=p.age||25;
       const retireAge=getNPCRetireAge(p.id);
+      let isRetired=false;
       if(age>=retireAge){
+        isRetired=true;
+      } else if(age>=25){
+        // Aggiorna contatori anni-fuori
+        const rk=p.rank||500;
+        npcYearsOutside150[p.id]=rk>150?(npcYearsOutside150[p.id]||0)+1:0;
+        npcYearsOutside250[p.id]=rk>250?(npcYearsOutside250[p.id]||0)+1:0;
+        // Seed deterministico per decisione di ritiro questo anno
+        const rngH=window.NPC_SYSTEM.mix((window.NPC_SYSTEM.parseIdInt(p.id))*13007+yearNum*9137);
+        const rngValue=(rngH%100000)/100000;
+        if(window.NPC_SYSTEM.shouldEarlyRetire({
+          npcId:p.id, age, rank:rk,
+          yearsOutsideTop150:npcYearsOutside150[p.id]||0,
+          yearsOutsideTop250:npcYearsOutside250[p.id]||0,
+          rngValue,
+        })){
+          isRetired=true;
+        }
+      }
+      if(isRetired){
         retiredIds.add(p.id);
-        // Genera sostituto giovane
         const rep=generateReplacementNPC(yearNum,weekNum);
         replacements.push(rep);
+        delete npcYearsOutside150[p.id];
+        delete npcYearsOutside250[p.id];
+        delete npcCareerPhase[p.id];
       }
+    });
+    // Transizioni career phase per NPC sopravvissuti (sess.50)
+    Object.values(world).forEach(p=>{
+      if(retiredIds.has(p.id)) return;
+      const cur=npcCareerPhase[p.id]||"steady";
+      const age=p.age||25;
+      const phH=window.NPC_SYSTEM.mix((window.NPC_SYSTEM.parseIdInt(p.id))*2131+yearNum*4093);
+      const phR=(phH%100000)/100000;
+      npcCareerPhase[p.id]=window.NPC_SYSTEM.rollPhaseTransition(cur, age, phR);
     });
   }
 
@@ -1974,27 +1910,28 @@ function simWeek(weekNum,world,yearNum,extraOpts={}){
     const skipSeed=((p.rank||1)*weekNum*3131)%10000/10000;
     const isSkip=skipSeed<skip_prob;
 
-    // Pacchetto B: MR punta a personalLevel (attrattore stagionale) invece di atpPtsForRank(rank)
+    // personalLevel: attrattore MR annuale. Ceiling/floor ora derivano dal TALENTO
+    // (tier determinato da initRank + hidden bonus), non più da initRank/3.
+    // Un rank 80 "Good" può raggiungere #35; un rank 40 "VeryGood" può arrivare #15.
     const rank=p.rank||400;
     const initRankB=p.initRank||rank;
-    // Inizializza personalLevel se mancante (primo accesso)
     if(npcPersonalLevel[p.id]==null){
       npcPersonalLevel[p.id]=atpPtsForRank(initRankB);
     }
-    // isNewYear: aggiorna personalLevel con drift modulato dall'archetype
-    // Floor/ceiling ASSOLUTI di carriera (non annuali) — permettono deriva cumulativa
-    // Newgen (initRank>=350): ceiling basato su talento deterministico
-    // Originali: floor=initRank×8, ceil=initRank÷3
-    const floorPtsAbs=atpPtsForRank(Math.min(400,initRankB*8));
-    const talentCeil=getNPCTalentCeiling(p.id,initRankB);
-    const ceilPtsAbs=talentCeil||atpPtsForRank(Math.max(1,initRankB<=2?1:Math.floor(initRankB/3)));
+    const bounds=getNPCCareerBounds(p.id,initRankB);
+    const floorPtsAbs=bounds.floorPts;
+    const ceilPtsAbs=bounds.ceilPts;
     if(isNewYear){
       const archB=getNPCArchetype(initRankB);
-      // Drift annuale per archetype (separato da volatility settimanale)
       const driftPctB=archB.volatility<=0.08?0.08:archB.volatility<=0.10?0.10:archB.volatility<=0.12?0.12:archB.volatility<=0.18?0.15:0.20;
-      const driftSeedB=sv((p.id||rank)*weekNum*3571+99);
-      const driftB=(driftSeedB*2-1)*driftPctB*npcPersonalLevel[p.id];
-      // Limita al floor/ceiling assoluto di carriera
+      const driftSeedB=sv((window.NPC_SYSTEM.parseIdInt(p.id))*weekNum*3571+99);
+      // Career phase (sess.50): steady/breakthrough/slump modulano drift
+      const phase=npcCareerPhase[p.id]||"steady";
+      const mod=window.NPC_SYSTEM.phaseDriftModifier(phase);
+      // Drift = base random + bias del phase (pushed ±) — magnitude amplificata
+      const rawDrift=(driftSeedB*2-1);
+      const biasedDrift=rawDrift*0.5+mod.signBias*0.5; // [-1,+1] con bias
+      const driftB=biasedDrift*driftPctB*mod.magnitude*npcPersonalLevel[p.id];
       npcPersonalLevel[p.id]=Math.max(floorPtsAbs,Math.min(ceilPtsAbs,npcPersonalLevel[p.id]+driftB));
     }
     const targetPts=npcPersonalLevel[p.id];
@@ -2149,6 +2086,23 @@ function stripBrackets(brackets){
 }
 function saveL(s){try{const sv={...s,brackets:stripBrackets(s.brackets)};localStorage.setItem(SK,JSON.stringify(sv));}catch(e){}}
 function loadL(){try{const r=localStorage.getItem(SK);return r?JSON.parse(r):null;}catch(e){return null;}}
+
+// ── SHIFT NPC RANKS — evita collisione giocatore-NPC ─────────────────
+// Il giocatore si INSERISCE nella classifica unificata. Gli NPC a quella
+// posizione e sotto vengono visualizzati con rank+1. Applicato dopo ogni
+// simWeek e alla rigenerazione NPC (button "Rigenera ATP Rankings").
+// Precondizioni: world contiene NPC con rank interno 1..500 (post-simWeek).
+// Se playerPts<5 (FC) il giocatore non è in classifica → nessuno shift.
+function shiftNpcRanksForPlayer(world, playerRank, playerPts){
+  if(!world||!playerRank||playerRank<1||(playerPts||0)<5) return world;
+  const shifted={};
+  Object.values(world).forEach(p=>{
+    const oldRank=p.rank||500;
+    const newRank=oldRank>=playerRank?oldRank+1:oldRank;
+    shifted[newRank]={...p,rank:newRank};
+  });
+  return shifted;
+}
 
 // ── MIGRAZIONE SAVE: ricalibra pool punti NPC se deflazionato ────────
 // Chiamata al caricamento del save. Ridistribuisce i punti NPC
@@ -5405,6 +5359,19 @@ function GameScreen({gs}){
   const[year,setYear]=useState(gs.year||1);
   const[player,setPlayer]=useState(gs.player);
   const[world,setWorld]=useState(()=>gs.atpWorld||buildWorld());
+  // Ripristina stato NPC runtime da save (sess.50): personalLevel, form, career phase.
+  // Senza persistenza, il drift cumulativo si perdeva ad ogni reload → spiega
+  // perché i top 30 cambiavano poco dopo 6 anni di simulazione con save/reload.
+  useEffect(()=>{
+    const ns=gs.npcState;
+    if(!ns) return;
+    Object.assign(npcForm,         ns.form||{});
+    Object.assign(npcPersonalLevel,ns.personalLevel||{});
+    Object.assign(npcCareerPhase,  ns.careerPhase||{});
+    Object.assign(npcYearsOutside150,ns.yearsOut150||{});
+    Object.assign(npcYearsOutside250,ns.yearsOut250||{});
+  // eslint-disable-next-line
+  },[]);
   const[brackets,setBrackets]=useState(gs.brackets||{});
   const[staff,setStaff]=useState(gs.staff||{});
   const[view,setView]=useState("cal");
@@ -6102,7 +6069,16 @@ function GameScreen({gs}){
   },[]);// eslint-disable-line
 
   useEffect(()=>{
-    saveL({week,year,player,atpWorld:world,brackets,staff,activeTour,tourRound,weekDone,trainCount,morale,sponsor,winterDone,careerLog,activeEvents,consecutiveTournaments,consecutiveLosses,catCooldown,gameMode:gs.gameMode||"classic"});
+    // npcState: stato runtime NPC persistito — cruciale per il drift cumulativo.
+    // Senza questo il mercato NPC si resettava a reload, annullando 6 anni di evoluzione.
+    const npcState={
+      form:{...npcForm},
+      personalLevel:{...npcPersonalLevel},
+      careerPhase:{...npcCareerPhase},
+      yearsOut150:{...npcYearsOutside150},
+      yearsOut250:{...npcYearsOutside250},
+    };
+    saveL({week,year,player,atpWorld:world,brackets,staff,activeTour,tourRound,weekDone,trainCount,morale,sponsor,winterDone,careerLog,activeEvents,consecutiveTournaments,consecutiveLosses,catCooldown,gameMode:gs.gameMode||"classic",npcState});
   },[week,year,player,world,activeTour,tourRound,weekDone,staff,trainCount,morale,sponsor,winterDone,careerLog,activeEvents,consecutiveTournaments,consecutiveLosses,catCooldown]);
 
   // advanceWeek: exact one week, debt tracking, leveled staff
@@ -6311,13 +6287,18 @@ function GameScreen({gs}){
     // (il riordino NPC in simWeek può spostare il giocatore senza che lo sappia)
     const realRank=Object.values(newWorld).filter(p=>(p.atpPoints||0)>(updPlayer.atpPoints||0)).length+1;
     updPlayer={...updPlayer,rank:clamp(realRank,1,500)};
+    // Shift NPC ranks per evitare collisione giocatore-NPC (sess.50):
+    // il giocatore si INSERISCE nella classifica ATP, gli NPC a/sotto la sua
+    // posizione scalano di +1. Solo se il giocatore è effettivamente in
+    // classifica (atpPoints >= 5, soglia FC).
+    const shiftedWorld=shiftNpcRanksForPlayer(newWorld, updPlayer.rank, updPlayer.atpPoints||0);
     // rankHistory: snapshot con rank reale post-simWeek — evita di registrare stime intermedie da curva
     const rh=[...(p.rankHistory||[]),{w:week,y:year,r:updPlayer.rank}].slice(-52);
     updPlayer={...updPlayer,rankHistory:rh};
     // Best rank calcolato DOPO sync — usa il rank reale aggiornato
     const newBest=Math.min(updPlayer.rank, updPlayer.bestRankEver||500);
     updPlayer={...updPlayer,bestRankEver:newBest};
-    setWorld(newWorld);setBrackets(prev=>({...prev,...brks}));
+    setWorld(shiftedWorld);setBrackets(prev=>({...prev,...brks}));
     setPlayer(updPlayer);setWeek(nw);setYear(ny);
     if(newSponsor!==sponsor)setSponsor(newSponsor);
     setWeekDone(false);setTrainCount(0);setActiveTour(null);setTourRound(0);
@@ -8096,10 +8077,12 @@ function GameScreen({gs}){
                     // Step 4: ricostruisci world keyed by rank
                     const newWorld={};
                     normalized.forEach(p=>{newWorld[p.rank]={...p};});
-                    setWorld(newWorld);
-                    // Step 5: sync rank giocatore
+                    // Step 5: sync rank giocatore e shift NPC per evitare collisione
                     const newRealRank=normalized.filter(p=>(p.atpPoints||0)>(player.atpPoints||0)).length+1;
-                    setPlayer(p=>({...p,rank:clamp(newRealRank,1,500)}));
+                    const playerRankCl=clamp(newRealRank,1,500);
+                    const shiftedWorld=shiftNpcRanksForPlayer(newWorld, playerRankCl, player.atpPoints||0);
+                    setWorld(shiftedWorld);
+                    setPlayer(p=>({...p,rank:playerRankCl}));
                     notify("✅ Classifica ATP ricalibrata","#10b981");
                   }}
                     style={{width:"100%",marginBottom:10,background:"rgba(16,185,129,0.10)",border:"1px solid #10b98144",borderRadius:9,padding:"10px 12px",color:"#10b981",fontWeight:700,fontSize:13,cursor:"pointer",textAlign:"left"}}>
@@ -8816,9 +8799,9 @@ function App(){
       player:{...pd,rank:startRank,atpPoints:startPts,money:budget,fatigue:0,age,wins:0,losses:0,titles:0,history:[],careerStats:{},careerStartRank:startRank,bestRankEver:startRank,currentZone:(NATS.find(n=>n.c===pd.nationality)?.z||"Europa"),homeZone:(NATS.find(n=>n.c===pd.nationality)?.z||"Europa"),investments:{}}};
     saveL(state);setGs(state);setScreen("game");
   }
-  function resume(){const s=loadL();if(s){const migratedWorld=migrateWorldPool(s.atpWorld||{});const migrated={...s,atpWorld:migratedWorld};saveL(migrated);setGs(migrated);setScreen("game");}}
+  function resume(){const s=loadL();if(s){const base=migrateWorldPool(s.atpWorld||{});const migratedWorld=shiftNpcRanksForPlayer(base,s.player?.rank||500,s.player?.atpPoints||0);const migrated={...s,atpWorld:migratedWorld};saveL(migrated);setGs(migrated);setScreen("game");}}
   if(screen==="boot")return <div style={{minHeight:"100vh",background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:18}}>🎾 Caricamento ATP Career...</div>;
-  function handleImport(f){importSave(f,state=>{const migratedWorld=migrateWorldPool(state.atpWorld||{});const migrated={...state,atpWorld:migratedWorld};saveL(migrated);setGs(migrated);setHasSave(true);setScreen("game");});}
+  function handleImport(f){importSave(f,state=>{const base=migrateWorldPool(state.atpWorld||{});const migratedWorld=shiftNpcRanksForPlayer(base,state.player?.rank||500,state.player?.atpPoints||0);const migrated={...state,atpWorld:migratedWorld};saveL(migrated);setGs(migrated);setHasSave(true);setScreen("game");});}
   if(screen==="creation")return <CharCreation onStart={startNew} hasSave={hasSave} onResume={resume} onImport={handleImport}/>;
   if(screen==="game"&&gs)return <GameScreen gs={gs}/>;
   return null;
