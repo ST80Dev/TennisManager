@@ -4520,7 +4520,7 @@ function TrainingScreen({player,staff,onTrain,onFinish,trainCount,week,morale}){
             const coachMult=coachLv&&o.stat?coachLv.trainBonus:1.0;
             const prepMult=prepLv&&o.fat>0?prepLv.fatigueReduce:1.0;
             const dimFactor=o.stat?Math.max(0.15,Math.pow(Math.max(0,(35-(cur||0))/35),0.6)):1.0;
-            const coachLvNumD=coachLv?(coachLv.lv||1)-1:0;
+            const coachLvNumD=coachLv?(coachLv.lv||0):0;
             const coachCapD={0:13,1:19,2:25,3:32}[coachLvNumD]||13;
             const isMentaleD=o.stat==="mentale";
             const isAtleD=o.stat==="velocita"||o.stat==="resistenza";
@@ -6127,7 +6127,12 @@ function GameScreen({gs}){
     const sparringLv=getStaffLevel(staff,"sparring");
     if(sparringLv&&(updPlayer.rank||500)<=250){
       const sk=STAT_KEYS[Math.floor(Math.random()*STAT_KEYS.length)];
-      updPlayer={...updPlayer,stats:{...updPlayer.stats,[sk]:parseFloat(clamp((updPlayer.stats[sk]||0)+sparringLv.weeklyGain,1,35).toFixed(1))}};
+      const curSk=updPlayer.stats[sk]||0;
+      const dimPass=Math.max(0.20,Math.pow(Math.max(0,(35-curSk)/35),0.5));
+      const rSp=updPlayer.rank||500;
+      const rankMultSp=rSp<=50?0.70:rSp<=100?0.85:1.0;
+      const gainSp=sparringLv.weeklyGain*dimPass*rankMultSp;
+      updPlayer={...updPlayer,stats:{...updPlayer.stats,[sk]:parseFloat(clamp(curSk+gainSp,1,35).toFixed(2))}};
     }
     const physioLvW=getStaffLevel(staff,"physio");
     const physioRec=physioLvW?physioLvW.recoveryBonus:0;
@@ -6164,11 +6169,16 @@ function GameScreen({gs}){
       });
       updPlayer={...updPlayer,stats:agedStats};
     }
-    // Centro di allenamento privato: +1 stat/sett su una stat casuale (effetto simile a sparring base)
-    // Applicato indipendentemente dalla presenza dello sparring staff
+    // Centro di allenamento privato: +0.10 stat/sett su una stat casuale
+    // Soggetto a dim-factor stat e scalatura rank-tier (come sparring)
     if(hasCenter){
       const csk=STAT_KEYS[Math.floor(Math.random()*STAT_KEYS.length)];
-      updPlayer={...updPlayer,stats:{...updPlayer.stats,[csk]:parseFloat(clamp((updPlayer.stats[csk]||0)+0.10,1,35).toFixed(2))}};
+      const curCsk=updPlayer.stats[csk]||0;
+      const dimCtr=Math.max(0.20,Math.pow(Math.max(0,(35-curCsk)/35),0.5));
+      const rCtr=updPlayer.rank||500;
+      const rankMultCtr=rCtr<=50?0.70:rCtr<=100?0.85:1.0;
+      const gainCtr=0.10*dimCtr*rankMultCtr;
+      updPlayer={...updPlayer,stats:{...updPlayer.stats,[csk]:parseFloat(clamp(curCsk+gainCtr,1,35).toFixed(2))}};
     }
     // Fondazione: floor morale a 35 — non può scendere sotto questa soglia
     if(hasInvestment(p,"foundation")){
@@ -6724,7 +6734,7 @@ function GameScreen({gs}){
         // Fix1: dimFactor curva concava ^0.6
         const dimFactor = o.stat ? Math.max(0.15,Math.pow(Math.max(0,(35-curStat)/35),0.6)) : 1.0;
         // Fix3: capFactor coach
-        const coachLvNumW = coachLv?(coachLv.lv||1)-1:0;
+        const coachLvNumW = coachLv?(coachLv.lv||0):0;
         const coachCapBaseW = {0:13,1:19,2:25,3:32}[coachLvNumW]||13;
         const isMentaleW = o.stat==="mentale";
         const isAtleW = o.stat==="velocita"||o.stat==="resistenza";
@@ -6797,7 +6807,7 @@ function GameScreen({gs}){
     const curStat=opt.stat?(player.stats[opt.stat]||0):0;
     const dimFactor=opt.stat?Math.max(0.15,Math.pow(Math.max(0,(35-curStat)/35),0.6)):1.0;
     // Fix3: capFactor coach — gain crolla sopra soglia del coach attivo
-    const coachLvNum=coachLv?(coachLv.lv||1)-1:0;
+    const coachLvNum=coachLv?(coachLv.lv||0):0;
     const coachCapBase={0:13,1:19,2:25,3:32}[coachLvNum]||13;
     const isMentale=opt.stat==="mentale";
     const isAtle=opt.stat==="velocita"||opt.stat==="resistenza";
