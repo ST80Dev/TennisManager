@@ -63,6 +63,49 @@ input, select { font-family: inherit; }
   30%     { transform:translateY(-3px); }
   70%     { transform:translateY(3px); }
 }
+
+/* Full-viewport screens (draw/bracket update) con fallback vh→dvh.
+   Su ≥600px #root ha zoom:1.15/1.25 → il 100vh interno viene gonfiato
+   e il contenuto sfora il viewport: compensiamo dividendo per il fattore. */
+.full-vh-screen {
+  height: 100vh;
+  max-height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+}
+@media (min-width: 600px) {
+  .full-vh-screen {
+    height: calc(100vh / 1.15);
+    max-height: calc(100vh / 1.15);
+    height: calc(100dvh / 1.15);
+    max-height: calc(100dvh / 1.15);
+  }
+}
+@media (min-width: 900px) {
+  .full-vh-screen {
+    height: calc(100vh / 1.25);
+    max-height: calc(100vh / 1.25);
+    height: calc(100dvh / 1.25);
+    max-height: calc(100dvh / 1.25);
+  }
+}
+/* Modale con limite viewport (rest prompt) con fallback vh→dvh e compensazione zoom */
+.modal-vh-limit {
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+}
+@media (min-width: 600px) {
+  .modal-vh-limit {
+    max-height: calc((100vh - 32px) / 1.15);
+    max-height: calc((100dvh - 32px) / 1.15);
+  }
+}
+@media (min-width: 900px) {
+  .modal-vh-limit {
+    max-height: calc((100vh - 32px) / 1.25);
+    max-height: calc((100dvh - 32px) / 1.25);
+  }
+}
 </style>
 </head>
 <body>
@@ -3244,7 +3287,7 @@ function DrawScreen({bracket, playerName, playerNat, tourName, tourType, surface
   const hasSF=tt2.rounds>=5;
 
   return(
-    <div style={{height:"100vh",background:"#050e1a",color:"#fff",margin:"0 auto",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+    <div className="full-vh-screen" style={{background:"#050e1a",color:"#fff",margin:"0 auto",display:"flex",flexDirection:"column",overflow:"hidden"}}>
       {/* Header torneo */}
       <div style={{background:"linear-gradient(135deg,#0a1628,#0d1f3a)",borderBottom:`2px solid ${tierColor}44`,padding:"18px 18px 14px",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
@@ -3468,7 +3511,7 @@ function BracketUpdateScreen({bracket, playerName, completedRound, totalRounds, 
   const winCol="#10b981"; const loseCol="#ef4444"; const pendCol="#60a5fa";
 
   return(
-    <div style={{height:"100dvh",maxHeight:"100dvh",background:"#050e1a",color:"#fff",margin:"0 auto",display:"flex",flexDirection:"column",overflow:"hidden",position:"fixed",inset:0,zIndex:100}}>
+    <div className="full-vh-screen" style={{background:"#050e1a",color:"#fff",margin:"0 auto",display:"flex",flexDirection:"column",overflow:"hidden"}}>
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#0a1628,#0d1f3a)",borderBottom:`2px solid ${tierColor}44`,padding:"16px 18px 12px",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -7436,7 +7479,7 @@ function GameScreen({gs}){
     const flagsTo=ZONE_FLAGS[tZone]||[];
     return(
       <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999,padding:16}}>
-        <div style={{background:"linear-gradient(160deg,#0a1628,#0f1e35)",border:`1px solid ${tCol}44`,borderRadius:18,maxWidth:360,width:"100%",maxHeight:"calc(100dvh - 32px)",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:`0 0 40px ${tCol}22`}}>
+        <div className="modal-vh-limit" style={{background:"linear-gradient(160deg,#0a1628,#0f1e35)",border:`1px solid ${tCol}44`,borderRadius:18,maxWidth:360,width:"100%",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:`0 0 40px ${tCol}22`}}>
 
           <div style={{flex:1,overflowY:"auto",minHeight:0}}>
           {/* Header torneo — con città grande */}
