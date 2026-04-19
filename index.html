@@ -6127,7 +6127,12 @@ function GameScreen({gs}){
     const sparringLv=getStaffLevel(staff,"sparring");
     if(sparringLv&&(updPlayer.rank||500)<=250){
       const sk=STAT_KEYS[Math.floor(Math.random()*STAT_KEYS.length)];
-      updPlayer={...updPlayer,stats:{...updPlayer.stats,[sk]:parseFloat(clamp((updPlayer.stats[sk]||0)+sparringLv.weeklyGain,1,35).toFixed(1))}};
+      const curSk=updPlayer.stats[sk]||0;
+      const dimPass=Math.max(0.20,Math.pow(Math.max(0,(35-curSk)/35),0.5));
+      const rSp=updPlayer.rank||500;
+      const rankMultSp=rSp<=50?0.70:rSp<=100?0.85:1.0;
+      const gainSp=sparringLv.weeklyGain*dimPass*rankMultSp;
+      updPlayer={...updPlayer,stats:{...updPlayer.stats,[sk]:parseFloat(clamp(curSk+gainSp,1,35).toFixed(2))}};
     }
     const physioLvW=getStaffLevel(staff,"physio");
     const physioRec=physioLvW?physioLvW.recoveryBonus:0;
@@ -6165,10 +6170,15 @@ function GameScreen({gs}){
       updPlayer={...updPlayer,stats:agedStats};
     }
     // Centro di allenamento privato: +0.10 stat/sett su una stat casuale
-    // Applicato indipendentemente dalla presenza dello sparring staff
+    // Soggetto a dim-factor stat e scalatura rank-tier (come sparring)
     if(hasCenter){
       const csk=STAT_KEYS[Math.floor(Math.random()*STAT_KEYS.length)];
-      updPlayer={...updPlayer,stats:{...updPlayer.stats,[csk]:parseFloat(clamp((updPlayer.stats[csk]||0)+0.10,1,35).toFixed(2))}};
+      const curCsk=updPlayer.stats[csk]||0;
+      const dimCtr=Math.max(0.20,Math.pow(Math.max(0,(35-curCsk)/35),0.5));
+      const rCtr=updPlayer.rank||500;
+      const rankMultCtr=rCtr<=50?0.70:rCtr<=100?0.85:1.0;
+      const gainCtr=0.10*dimCtr*rankMultCtr;
+      updPlayer={...updPlayer,stats:{...updPlayer.stats,[csk]:parseFloat(clamp(curCsk+gainCtr,1,35).toFixed(2))}};
     }
     // Fondazione: floor morale a 35 — non può scendere sotto questa soglia
     if(hasInvestment(p,"foundation")){
