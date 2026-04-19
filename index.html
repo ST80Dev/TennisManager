@@ -483,7 +483,7 @@ const TT = {
   ChallengerA:{label:"Challenger",   pts:125, prize:35000,  rounds:5,color:"#94a3b8",minRank:370, rankFloor:100, rankCeiling:150},
   ChallengerB:{label:"Challenger B",  pts:60,  prize:15000,  rounds:5,color:"#7a8fa6",minRank:450, rankFloor:250, rankCeiling:250},
   ITF:        {label:"ITF",            pts:6,   prize:8000,   rounds:4,color:"#c2680a",minRank:500, rankFloor:350, rankCeiling:370},
-  ATPFinals:  {label:"ATP Finals",   pts:1500,prize:500000, rounds:6,color:"#f59e0b",minRank:8,   rankFloor:1},
+  ATPFinals:  {label:"ATP Finals",   pts:1500,prize:500000, rounds:5,color:"#f59e0b",minRank:12,  rankFloor:1, format:"roundRobin", drawSize:8},
 };
 
 const CAL = [
@@ -729,11 +729,11 @@ const CAL = [
   {week:39, name:"Augsburg Challenger",       type:"ChallengerB",surface:"Cemento",     zone:"Europa"},
   {week:40, name:"Brno Challenger",           type:"ChallengerB",surface:"Cemento",     zone:"Europa"},
 
-  // ══ SETT 40 — ATP Finals sett 1 ══
-  {week:40, name:"ATP Finals",                type:"ATPFinals",  surface:"Cemento",     zone:"Europa"},
-
-  // ══ SETT 41 — ATP Finals sett 2 ══
+  // ══ SETT 41 — ATP Finals sett 1 (gironi) — 1 settimana di riposo dopo Bercy ══
   {week:41, name:"ATP Finals",                type:"ATPFinals",  surface:"Cemento",     zone:"Europa"},
+
+  // ══ SETT 42 — ATP Finals sett 2 (SF + Finale, accesso automatico) ══
+  {week:42, name:"ATP Finals",                type:"ATPFinals",  surface:"Cemento",     zone:"Europa", atpFinalsWeek2:true},
   {week:8,  name:"Stuttgart Challenger",     type:"ChallengerA",surface:"Terra Rossa",  zone:"Europa"},
   {week:28, name:"Zagreb Challenger",        type:"ChallengerA",surface:"Terra Rossa",  zone:"Europa"},
   {week:39, name:"Bratislava Challenger",    type:"ChallengerA",surface:"Cemento",      zone:"Europa"},
@@ -910,8 +910,8 @@ function buildSponsorOffers(names, rank, week, year, atpPts){
   const tgtAmbiz    = rankForAtpPts(tgtAmbiziPts);
   const tgtGrad     = rankForAtpPts(tgtGradPts);
   const tgtGradChk  = rankForAtpPts(tgtGradChkPts);
-  // Scadenze: protezione zona proibita (pausa 42-51, pre-stagione 1-13)
-  const isPausa = w >= 42;
+  // Scadenze: protezione zona proibita (pausa 43-51, pre-stagione 1-13)
+  const isPausa = w >= 43;
   const baseW = isPausa ? 1 : w;
   const baseY = isPausa ? y+1 : y;
   function rawAdd(dw){
@@ -1031,7 +1031,8 @@ const PTS_TABLE = {
   ChallengerB:[ 44, 24, 12,  4,  2, null, 0],
   ATP250:    [250,150, 80, 30, 15,    5, 2],
   ATP500:    [500,300,160, 90, 45,   20, 5],
-  ATPFinals: [1500,900,540,270,135,  68,15],
+  // ATPFinals (rounds=5, round-robin): [Titolo, Finalista, SF_persa, Eliminato_girone_3RR, Eliminato_girone_2RR, Eliminato_girone_1RR]
+  ATPFinals: [1500,1000, 600, 400, 200, 0],
   M1000:     [1000,600,360,180, 90,  45,10],
   Slam:      [2000,1200,720,360,180, 90,45,10], // 8 valori: T1/T2/Seds separati
 };
@@ -1049,7 +1050,8 @@ const PRIZE_MONEY = {
   // ATP250/ATP500 (rounds=6): pfIdx 0=T1perso..6=Tit
   ATP250:     [2000, 3500, 6000, 10000, 18000, 35000,  60000],
   ATP500:     [3000, 5500,10000, 16000, 30000, 60000, 100000],
-  ATPFinals:  [5000,10000,18000, 30000, 55000,100000, 180000],
+  // ATPFinals (rounds=5, round-robin): pfIdx 0=RR1elim..5=Titolo
+  ATPFinals:  [15000, 35000, 65000, 120000, 220000, 500000],
   // Slam (rounds=7): pfIdx 0=T1..7=Tit (8 slot) — T1=9000 > M1000(6000), < T2(21000)
   Slam:       [9000,21000,35000, 56000, 84000,154000, 280000, 500000],
 };
@@ -1656,6 +1658,34 @@ function buildEligPool(world, tt, needCount, excludeId){
   const bandLow = tt.rankCeiling ? Math.max(npcFloor, tt.rankCeiling) : npcFloor;
   const rangeSize = tt.minRank - bandLow;
 
+  // ATP Finals: pool quasi sempre i primi 8, con piccole probabilità di rinuncia
+  // (infortunio/indisponibilità) che fanno entrare il 9°-12° al loro posto.
+  if(tt.label==="ATP Finals"){
+    const candidates = Object.values(world)
+      .filter(p=>p.rank>=1 && p.rank<=12 && p.id!==excludeId)
+      .sort((a,b)=>a.rank-b.rank);
+    const pool=[];
+    const remaining=[...candidates];
+    while(pool.length<needCount && remaining.length>0){
+      // 88% accetta il miglior rank disponibile; 12% è "forfait" e passa al successivo.
+      // Forza accettazione quando servono tutti i restanti per completare il pool.
+      if(Math.random()<0.88 || remaining.length<=needCount-pool.length){
+        pool.push(remaining.shift());
+      } else {
+        remaining.shift();
+      }
+    }
+    // Fill se serve ancora (extreme safety — non dovrebbe accadere)
+    let fillR=13;
+    while(pool.length<needCount){
+      const fp=getATPPlayer(world,fillR++);
+      if(fp && fp.id!==excludeId && !pool.find(x=>x.id===fp.id)) pool.push(fp);
+      if(fillR>30) break;
+    }
+    pool.sort((a,b)=>a.rank-b.rank);
+    return pool;
+  }
+
   // skipFactor: quanto i "peggiori" della fascia tendono a non partecipare
   // 0=tutti equiprobabili, 1=solo il migliore partecipa
   const tLabel=tt.label||'';
@@ -1714,6 +1744,9 @@ function buildEligPool(world, tt, needCount, excludeId){
 
 function simNPCBracket(tourn,world){
   const tt=TT[tourn.type]||TT.ATP250;
+  if(tt.format==="roundRobin"){
+    return simNPCBracketRR(tourn,world);
+  }
   const drawSize=Math.pow(2,tt.rounds);
   const elig=buildEligPool(world,tt,drawSize,null);
   const draw=buildSeededDraw(elig,drawSize);
@@ -1743,10 +1776,203 @@ function simNPCBracket(tourn,world){
   return{tourn,rounds,winner:w?.name,wr:w?.rank,wid:w?.id,completed:true};
 }
 
+// Simulazione NPC full per ATP Finals: 2 gironi (3 turni round robin) + SF incrociate + Finale
+function simNPCBracketRR(tourn,world){
+  const tt=TT[tourn.type];
+  const drawSize=tt.drawSize||8;
+  const elig=buildEligPool(world,tt,drawSize,null);
+  const groups=atpFinalsBuildGroups(elig);
+  const standings={A:atpFinalsInitStandings(groups.A), B:atpFinalsInitStandings(groups.B)};
+  const rounds=[];
+  // 3 turni round robin
+  for(let r=0;r<3;r++){
+    const matches=[];
+    ['A','B'].forEach(gKey=>{
+      ATP_FINALS_RR[r].forEach(pr=>{
+        const p1=groups[gKey][pr[0]], p2=groups[gKey][pr[1]];
+        const m={...atpFinalsSimMatch(p1,p2,tourn.surface),group:gKey};
+        atpFinalsUpdateStandings(standings[gKey],m);
+        matches.push(m);
+      });
+    });
+    rounds.push({ri:r,rName:atpFinalsRoundName(r),matches});
+  }
+  // Semifinali incrociate
+  const rankA=atpFinalsRankGroup(groups.A,standings.A);
+  const rankB=atpFinalsRankGroup(groups.B,standings.B);
+  const sf1=atpFinalsSimMatch(rankA[0],rankB[1],tourn.surface);
+  const sf2=atpFinalsSimMatch(rankB[0],rankA[1],tourn.surface);
+  rounds.push({ri:3,rName:atpFinalsRoundName(3),matches:[{...sf1,stage:"SF"},{...sf2,stage:"SF"}]});
+  // Finale
+  const w1=sf1.wid===rankA[0].id?rankA[0]:rankB[1];
+  const w2=sf2.wid===rankB[0].id?rankB[0]:rankA[1];
+  const fin=atpFinalsSimMatch(w1,w2,tourn.surface);
+  rounds.push({ri:4,rName:atpFinalsRoundName(4),matches:[{...fin,stage:"F"}]});
+  const champ=fin.wid===w1.id?w1:w2;
+  return{tourn,rounds,groups,standings,groupRanking:{A:rankA,B:rankB},format:"roundRobin",
+    winner:champ.name,wr:champ.rank,wid:champ.id,completed:true};
+}
+
+// ═══════════════════════════════════════════════════
+// ATP FINALS — helpers per formato a gironi (round robin + KO)
+// ═══════════════════════════════════════════════════
+// Seed reale ATP Finals: S1→gruppo A, S2→gruppo B; S3/S4 estratti 1 per girone;
+// S5/S6 estratti 1 per girone; S7/S8 estratti 1 per girone.
+// Ritorna {A:[4 giocatori in ordine di seed],B:[4 giocatori in ordine di seed]}
+function atpFinalsBuildGroups(seededPool){
+  const A=[],B=[];
+  A.push(seededPool[0]); B.push(seededPool[1]);
+  const pairs=[[seededPool[2],seededPool[3]],[seededPool[4],seededPool[5]],[seededPool[6],seededPool[7]]];
+  pairs.forEach(pr=>{
+    if(Math.random()<0.5){A.push(pr[0]);B.push(pr[1]);}
+    else {A.push(pr[1]);B.push(pr[0]);}
+  });
+  return {A,B};
+}
+// Calendario round robin per 4 giocatori (posizioni 0..3 nel gruppo)
+// Round 0: 0v1, 2v3; Round 1: 0v2, 1v3; Round 2: 0v3, 1v2
+const ATP_FINALS_RR = [[[0,1],[2,3]],[[0,2],[1,3]],[[0,3],[1,2]]];
+
+// Simula un singolo match (best-of-3) e ritorna oggetto match strutturato
+function atpFinalsSimMatch(p1,p2,surface){
+  const s1=pStr(p1.stats,surface),s2=pStr(p2.stats,surface);
+  const bo=3;const tw=Math.ceil(bo/2);
+  const sets=[];let c1=0,c2=0;
+  while(c1<tw&&c2<tw){
+    const w=Math.random()<winP(s1,s2);
+    let pg,og;if(w){pg=6;og=rngI(0,5);if(og===5)og=7;}else{og=6;pg=rngI(0,5);if(pg===5)pg=7;}
+    sets.push({pg,og});if(w)c1++;else c2++;
+  }
+  const p1w=c1===tw;
+  return {p1:p1.name,p2:p2.name,p1r:p1.rank,p2r:p2.rank,p1id:p1.id,p2id:p2.id,
+    winner:p1w?p1.name:p2.name,wr:p1w?p1.rank:p2.rank,wid:p1w?p1.id:p2.id,
+    sets,done:true,p1obj:p1,p2obj:p2,setsFor:{[p1.id]:c1,[p2.id]:c2}};
+}
+// Inizializza struttura standings per un gruppo
+function atpFinalsInitStandings(group){
+  const st={};
+  group.forEach(p=>{st[p.id]={id:p.id,name:p.name,rank:p.rank,w:0,l:0,sw:0,sl:0};});
+  return st;
+}
+// Aggiorna standings dopo un match
+function atpFinalsUpdateStandings(st, match){
+  const {p1id,p2id,wid,setsFor}=match;
+  if(!st[p1id]||!st[p2id])return;
+  const sf1=setsFor?setsFor[p1id]:0, sf2=setsFor?setsFor[p2id]:0;
+  st[p1id].sw+=sf1; st[p1id].sl+=sf2;
+  st[p2id].sw+=sf2; st[p2id].sl+=sf1;
+  if(wid===p1id){st[p1id].w++; st[p2id].l++;}
+  else {st[p2id].w++; st[p1id].l++;}
+}
+// Ritorna array ordinato di 4 giocatori (1°,2°,3°,4° posto) dal gruppo
+// Tiebreak: vittorie desc, set-ratio desc, rank asc (simula head-to-head/game-ratio)
+function atpFinalsRankGroup(group, standings){
+  return [...group].sort((a,b)=>{
+    const sa=standings[a.id], sb=standings[b.id];
+    if(sb.w!==sa.w) return sb.w-sa.w;
+    const ra=sa.sw/(sa.sw+sa.sl||1), rb=sb.sw/(sb.sw+sb.sl||1);
+    if(rb!==ra) return rb-ra;
+    return (a.rank||500)-(b.rank||500);
+  });
+}
+// Premi/punti per ATP Finals basati su fase di uscita e vittorie girone
+// Scala reale: RR win=200, SF win=400, F win=500 → max 1500 (3 RR + SF + F)
+function atpFinalsReward(groupWins, exitStage, wonCurrent){
+  const pm = PRIZE_MONEY.ATPFinals;
+  const gw = Math.min(Math.max(groupWins,0),3);
+  if(exitStage==="group"){
+    // Eliminato nei gironi — premio e punti scalano con le vittorie
+    return {pts: gw*200, prize: pm[Math.min(gw,2)]};
+  }
+  if(exitStage==="sf"){
+    // Sconfitta in SF
+    return {pts: gw*200, prize: pm[3]};
+  }
+  if(exitStage==="f"){
+    if(wonCurrent){
+      // Campione
+      return {pts: gw*200 + 400 + 500, prize: pm[5]};
+    }
+    // Finalista (ha vinto SF, perso F)
+    return {pts: gw*200 + 400, prize: pm[4]};
+  }
+  return {pts: 0, prize: 0};
+}
+// Calcola vittorie del giocatore nei round robin del bracket corrente (round 0..rMax-1)
+function atpFinalsCountGroupWins(brkt, playerId, rMax){
+  let wins=0;
+  const upTo=Math.min(rMax, 3);
+  for(let pr=0;pr<upTo;pr++){
+    const rd=brkt?.rounds?.[pr];
+    if(!rd?.matches) continue;
+    const pm=rd.matches.find(m=>(m.p1id===playerId||m.p2id===playerId||m.isPlayerMatch));
+    if(pm && pm.done && pm.wid===playerId) wins++;
+  }
+  return wins;
+}
+// Dopo il match del giocatore al turno r (0..2), ritorna true se il giocatore si qualifica
+// (1° o 2° nel girone). Simula le standings includendo il risultato del match corrente.
+function atpFinalsPlayerQualifies(brkt, player, won, sets, matchData){
+  if(!brkt || !brkt.standings || !brkt.groups) return true;
+  const pid = player.id;
+  const standings = {A:{}, B:{}};
+  Object.keys(brkt.standings.A).forEach(k=>{standings.A[k]={...brkt.standings.A[k]};});
+  Object.keys(brkt.standings.B).forEach(k=>{standings.B[k]={...brkt.standings.B[k]};});
+  const rd = brkt.rounds[2];
+  const pm = rd?.matches?.find(m=>m.isPlayerMatch);
+  if(pm){
+    const gKey = pm.group;
+    const oppId = pm.p1id===pid?pm.p2id:pm.p1id;
+    const setsP = (sets||[]).filter(s=>s.pg>s.og).length;
+    const setsO = (sets||[]).length - setsP;
+    if(standings[gKey] && standings[gKey][pid] && standings[gKey][oppId]){
+      standings[gKey][pid].sw+=setsP; standings[gKey][pid].sl+=setsO;
+      standings[gKey][oppId].sw+=setsO; standings[gKey][oppId].sl+=setsP;
+      if(won){standings[gKey][pid].w++; standings[gKey][oppId].l++;}
+      else   {standings[gKey][oppId].w++; standings[gKey][pid].l++;}
+    }
+  }
+  const gKey = brkt.playerGroupKey;
+  const group = brkt.groups[gKey];
+  const ranking = atpFinalsRankGroup(group, standings[gKey]);
+  const pos = ranking.findIndex(p=>p.id===pid);
+  return pos>=0 && pos<2;
+}
+// Nome round per ATP Finals (rounds=5, format roundRobin)
+function atpFinalsRoundName(r){
+  if(r===0) return "Girone · Match 1";
+  if(r===1) return "Girone · Match 2";
+  if(r===2) return "Girone · Match 3";
+  if(r===3) return "Semifinale";
+  return "Finale";
+}
+// Costruisce i 4 match di un turno del girone (2 per gruppo)
+function atpFinalsBuildRRRound(groups,r,playerId,surface){
+  const pairs=ATP_FINALS_RR[r];
+  const matches=[];
+  ['A','B'].forEach(gKey=>{
+    pairs.forEach(pr=>{
+      const p1=groups[gKey][pr[0]], p2=groups[gKey][pr[1]];
+      const hasPlayer=p1.id===playerId||p2.id===playerId;
+      if(hasPlayer){
+        matches.push({p1:p1.name,p2:p2.name,p1r:p1.rank,p2r:p2.rank,p1id:p1.id,p2id:p2.id,
+          pending:true,isPlayerMatch:true,sets:[],winner:null,wid:null,p1obj:p1,p2obj:p2,group:gKey});
+      } else {
+        matches.push({...atpFinalsSimMatch(p1,p2,surface),group:gKey});
+      }
+    });
+  });
+  return matches;
+}
+
 // Build live bracket — simula solo T1 (turno 0). I turni successivi
 // vengono simulati progressivamente in handleMatchDone dopo ogni vittoria.
 function buildLiveBracket(tourn,world,playerObj){
   const tt=TT[tourn.type]||TT.ATP250;
+  // ATP Finals: formato round robin + KO (2 gironi da 4, SF incrociate, Finale)
+  if(tt.format==="roundRobin"){
+    return buildLiveBracketRR(tourn,world,playerObj);
+  }
   const drawSize=Math.pow(2,tt.rounds);
   const elig=buildEligPool(world,tt,drawSize-1,playerObj.id);
   // FIX B sess.43: inserisce il player nella posizione corretta del pool ordinato
@@ -1791,9 +2017,36 @@ function buildLiveBracket(tourn,world,playerObj){
   return{tourn,rounds,completed:false,winner:null,simulatedUpTo:0};
 }
 
+// Build live bracket per ATP Finals (formato round robin + KO)
+function buildLiveBracketRR(tourn,world,playerObj){
+  const tt=TT[tourn.type];
+  const drawSize=tt.drawSize||8;
+  const elig=buildEligPool(world,tt,drawSize-1,playerObj.id);
+  const pObj={...playerObj,isPlayer:true};
+  const pRank=playerObj.rank||500;
+  let insertIdx=elig.findIndex(p=>p.rank>pRank);
+  if(insertIdx===-1) insertIdx=elig.length;
+  const seeded=[...elig.slice(0,insertIdx),pObj,...elig.slice(insertIdx)];
+  const groups=atpFinalsBuildGroups(seeded);
+  const playerGroupKey=groups.A.find(p=>p.isPlayer)?'A':'B';
+  const standings={A:atpFinalsInitStandings(groups.A), B:atpFinalsInitStandings(groups.B)};
+  // Costruisci turno 0 (primo giro del girone) e simula i match NPC
+  const matches0=atpFinalsBuildRRRound(groups,0,pObj.id,tourn.surface);
+  matches0.forEach(m=>{if(m.done) atpFinalsUpdateStandings(standings[m.group],m);});
+  const rounds=[{ri:0,rName:atpFinalsRoundName(0),matches:matches0,pending:false}];
+  for(let r=1;r<tt.rounds;r++){
+    rounds.push({ri:r,rName:atpFinalsRoundName(r),matches:[],pending:true});
+  }
+  return {tourn,rounds,groups,standings,playerGroupKey,format:"roundRobin",
+    completed:false,winner:null,wr:null,wid:null,simulatedUpTo:0};
+}
+
 // Simula il turno 'r' del bracket live, usando i sopravvissuti del turno r-1
 // Chiamato da handleMatchDone dopo ogni vittoria del giocatore
 function advanceLiveBracket(brkt,playerObj,r){
+  if(brkt.format==="roundRobin"){
+    return advanceLiveBracketRR(brkt,playerObj,r);
+  }
   const tt=TT[brkt.tourn.type]||TT.ATP250;
   const prevRound=brkt.rounds[r-1];
   if(!prevRound)return brkt;
@@ -1829,6 +2082,65 @@ function advanceLiveBracket(brkt,playerObj,r){
   }
   const newRounds=brkt.rounds.map((rd,i)=>i===r?{...rd,matches,survivors:nextSurvivors,pending:false}:rd);
   return{...brkt,rounds:newRounds,simulatedUpTo:r};
+}
+
+// Avanza bracket ATP Finals (gironi + SF incrociate + Finale)
+// r=1,2  → prossimo turno di girone
+// r=3    → semifinale (usa ranking finale gironi)
+// r=4    → finale
+function advanceLiveBracketRR(brkt,playerObj,r){
+  const tt=TT[brkt.tourn.type];
+  const surface=brkt.tourn.surface;
+  const pObj={...playerObj,isPlayer:true};
+  // Le standings sono gia' aggiornate in handleMatchDone (inclusi match NPC + match giocatore)
+  const standings={A:{...brkt.standings.A}, B:{...brkt.standings.B}};
+  Object.keys(standings.A).forEach(k=>standings.A[k]={...standings.A[k]});
+  Object.keys(standings.B).forEach(k=>standings.B[k]={...standings.B[k]});
+  let matches=[];
+  let groupRanking=brkt.groupRanking||null;
+  if(r<3){
+    // Prossimo turno girone — sostituisci player object con pObj aggiornato
+    const groupsNow={A:brkt.groups.A.map(p=>p.id===pObj.id?pObj:p), B:brkt.groups.B.map(p=>p.id===pObj.id?pObj:p)};
+    matches=atpFinalsBuildRRRound(groupsNow,r,pObj.id,surface);
+    matches.forEach(m=>{if(m.done&&m.group&&standings[m.group]) atpFinalsUpdateStandings(standings[m.group],m);});
+  } else if(r===3){
+    // Calcola ranking finali gironi ora che le 3 giornate sono complete
+    const rankA=atpFinalsRankGroup(brkt.groups.A,standings.A);
+    const rankB=atpFinalsRankGroup(brkt.groups.B,standings.B);
+    groupRanking={A:rankA, B:rankB};
+    // SF incrociate: 1A vs 2B, 1B vs 2A
+    const sfPairs=[[rankA[0],rankB[1]],[rankB[0],rankA[1]]];
+    sfPairs.forEach(([p1,p2])=>{
+      const hasPlayer=p1.id===pObj.id||p2.id===pObj.id;
+      if(hasPlayer){
+        const pp1=p1.id===pObj.id?pObj:p1, pp2=p2.id===pObj.id?pObj:p2;
+        matches.push({p1:pp1.name,p2:pp2.name,p1r:pp1.rank,p2r:pp2.rank,p1id:pp1.id,p2id:pp2.id,
+          pending:true,isPlayerMatch:true,sets:[],winner:null,wid:null,p1obj:pp1,p2obj:pp2,stage:"SF"});
+      } else {
+        matches.push({...atpFinalsSimMatch(p1,p2,surface),stage:"SF"});
+      }
+    });
+  } else if(r===4){
+    // Finale: vincitori delle 2 SF
+    const sfRound=brkt.rounds[3];
+    const winners=(sfRound&&sfRound.matches)?sfRound.matches.map(m=>{
+      if(m.isPlayerMatch) return m.winner===pObj.name?pObj:(m.p1obj?.id===m.wid?m.p1obj:m.p2obj);
+      return m.p1id===m.wid?m.p1obj:m.p2obj;
+    }):[];
+    if(winners.length>=2){
+      const [w1,w2]=winners;
+      const hasPlayer=w1.id===pObj.id||w2.id===pObj.id;
+      if(hasPlayer){
+        const pp1=w1.id===pObj.id?pObj:w1, pp2=w2.id===pObj.id?pObj:w2;
+        matches.push({p1:pp1.name,p2:pp2.name,p1r:pp1.rank,p2r:pp2.rank,p1id:pp1.id,p2id:pp2.id,
+          pending:true,isPlayerMatch:true,sets:[],winner:null,wid:null,p1obj:pp1,p2obj:pp2,stage:"F"});
+      } else {
+        matches.push({...atpFinalsSimMatch(w1,w2,surface),stage:"F"});
+      }
+    }
+  }
+  const newRounds=brkt.rounds.map((rd,i)=>i===r?{...rd,matches,pending:false}:rd);
+  return{...brkt,rounds:newRounds,standings,groupRanking:groupRanking||brkt.groupRanking,simulatedUpTo:r};
 }
 
 function simWeek(weekNum,world,yearNum,extraOpts={}){
@@ -1958,6 +2270,9 @@ function simWeek(weekNum,world,yearNum,extraOpts={}){
   // ── Phase 2: punti torneo — tutti i tier, moltiplicatori realistici ─
   const brks={};
   ts.forEach(tourn=>{
+    // ATP Finals: la 2a settimana è gia' coperta dalla simulazione completa
+    // (gironi + SF + Finale) eseguita alla 1a settimana. Evita doppia simulazione.
+    if(tourn.atpFinalsWeek2) return;
     const tmpWorld={};
     Object.values(byId).forEach(p=>{tmpWorld[p.rank]={...p};});
     const b=simNPCBracket(tourn,tmpWorld);
@@ -3107,7 +3422,11 @@ function DrawScreen({bracket, playerName, playerNat, tourName, tourType, surface
 // ═══════════════════════════════════════════════════
 function BracketUpdateScreen({bracket, playerName, completedRound, totalRounds, won, isExit, isTournEnd, tourName, tourType, tierColor, tierLabel, onContinue}){
   const [visible, setVisible]=React.useState(false);
-  React.useEffect(()=>{const t=setTimeout(()=>setVisible(true),80);return()=>clearTimeout(t);},[]);
+  React.useEffect(()=>{
+    const t=setTimeout(()=>setVisible(true),80);
+    window.scrollTo({top:0,left:0,behavior:"instant"});
+    return()=>clearTimeout(t);
+  },[]);
 
   const tt2=TT[tourType]||TT.ATP250;
   const drawSize=Math.pow(2,tt2.rounds);
@@ -3125,6 +3444,13 @@ function BracketUpdateScreen({bracket, playerName, completedRound, totalRounds, 
   const nextOpp=nextPlayerMatch?(nextPlayerMatch.p1===playerName?{name:nextPlayerMatch.p2,rank:nextPlayerMatch.p2r,nat:nextPlayerMatch.p2obj?.nat||""}:{name:nextPlayerMatch.p1,rank:nextPlayerMatch.p1r,nat:nextPlayerMatch.p1obj?.nat||""}):null;
 
   const roundName=(r,tot)=>{
+    if(tourType==="ATPFinals"){
+      if(r===0) return "Girone · Match 1";
+      if(r===1) return "Girone · Match 2";
+      if(r===2) return "Girone · Match 3";
+      if(r===3) return "Semifinale";
+      return "Finale";
+    }
     const fe=tot-1-r;
     return fe===0?"Finale":fe===1?"Semifinale":fe===2?"Quarti di Finale":fe===3?"Ottavi di Finale":`Turno ${r+1}`;
   };
@@ -3142,7 +3468,7 @@ function BracketUpdateScreen({bracket, playerName, completedRound, totalRounds, 
   const winCol="#10b981"; const loseCol="#ef4444"; const pendCol="#60a5fa";
 
   return(
-    <div style={{height:"100vh",background:"#050e1a",color:"#fff",margin:"0 auto",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+    <div style={{height:"100dvh",maxHeight:"100dvh",background:"#050e1a",color:"#fff",margin:"0 auto",display:"flex",flexDirection:"column",overflow:"hidden",position:"fixed",inset:0,zIndex:100}}>
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#0a1628,#0d1f3a)",borderBottom:`2px solid ${tierColor}44`,padding:"16px 18px 12px",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -3348,6 +3674,10 @@ function MatchScreen({md,player,staff,onFinish,morale,bracket,tourRound,activeEv
   const[gameLog,setGameLog]=useState([]);
   // trackOffset: indice del primo set visibile nel tracker (finestra di 3)
   const[trackOffset,setTrackOffset]=useState(0);
+  // Al mount della schermata match: riporta lo scroll in cima cosi' l'header è visibile
+  React.useEffect(()=>{
+    window.scrollTo({top:0,left:0,behavior:"instant"});
+  },[]);
   // Auto-avanza la finestra quando inizia un nuovo set oltre la terza colonna
   React.useEffect(()=>{
     const currentIdx=sets.length; // set in corso (0-based)
@@ -3490,7 +3820,7 @@ function MatchScreen({md,player,staff,onFinish,morale,bracket,tourRound,activeEv
           </div>
           {/* Turno in evidenza */}
           {(()=>{
-            const rn=getRoundName(round,md.totalRounds||4);
+            const rn=getRoundName(round,md.totalRounds||4,tourn.type);
             const isBig=rn==="Finale"||rn==="Semifinale";
             const isMed=rn==="Quarti"||rn==="Ottavi";
             const rcol=isBig?"#f59e0b":isMed?"#a78bfa":"#64748b";
@@ -3966,7 +4296,7 @@ function MatchScreen({md,player,staff,onFinish,morale,bracket,tourRound,activeEv
               const ptsEarned=tourn?getMatchPts(tourn.type,fromEnd2,result.won):0;
               const ptsDifend=(player.history||[]).filter(h=>h.tournament===tourn?.name&&h.year===(year-1)&&h.week===tourn?.week&&h.isExit).reduce((s,h)=>s+(h.pts||0),0);
               const netPts=ptsEarned-ptsDifend;
-              const roundLabel=getRoundName(round,tt3.rounds);
+              const roundLabel=getRoundName(round,tt3.rounds,tourn?.type);
               return(
                 <div style={{background:"#060d18",border:"1px solid #1e293b",borderRadius:12,padding:"12px 14px",marginBottom:10}}>
                   <div style={{fontSize:11,color:"#475569",fontWeight:800,letterSpacing:1.2,textTransform:"uppercase",marginBottom:8}}>Riepilogo settimana</div>
@@ -4399,7 +4729,7 @@ function TrainingScreen({player,staff,onTrain,onFinish,trainCount,week,morale}){
   const sparringLv=getStaffLevel(staff,"sparring");
   const prepLv=getStaffLevel(staff,"prep");
   const physioLv=getStaffLevel(staff,"physio");
-  const isPausa=week>=42&&week<=51;
+  const isPausa=week>=43&&week<=51;
   const slotsMax=isPausa?3:5;
   const slotsLeft=slotsMax-trainCount;
   const canDoStat=slotsLeft>0&&fat<95;
@@ -5227,7 +5557,15 @@ function CharCreation({onStart,hasSave,onResume,onImport}){
 
 
 // Returns round name based on round index and total rounds
-function getRoundName(roundIdx, totalRounds){
+function getRoundName(roundIdx, totalRounds, tourType){
+  // ATP Finals: round robin nei primi 3 turni, poi SF e Finale
+  if(tourType==="ATPFinals"){
+    if(roundIdx===0) return "Girone · Match 1";
+    if(roundIdx===1) return "Girone · Match 2";
+    if(roundIdx===2) return "Girone · Match 3";
+    if(roundIdx===3) return "Semifinale";
+    return "Finale";
+  }
   const fromEnd = totalRounds - 1 - roundIdx;
   if(fromEnd===0)return "Finale";
   if(fromEnd===1)return "Semifinale";
@@ -6198,8 +6536,8 @@ function GameScreen({gs}){
     const csr=p.careerStartRank||400;
     // rankHistory: snapshot aggiunto DOPO il sync rank reale (vedi sotto) — usa il rank reale, non la stima da curva
     updPlayer={...updPlayer,careerStartRank:csr};
-    // Pausa invernale: sett 42-51 — recupero fatica +8/sett extra, morale sale verso 60
-    const isPausa=nw>=42&&nw<=51;
+    // Pausa invernale: sett 43-51 — recupero fatica +8/sett extra, morale sale verso 60
+    const isPausa=nw>=43&&nw<=51;
     if(isPausa){
       updPlayer={...updPlayer,fatigue:Math.round(Math.max(0,(updPlayer.fatigue||0)-8))};
       setMorale(m=>clamp(m+2,0,100));
@@ -6448,14 +6786,58 @@ function GameScreen({gs}){
     const r=tourRound;
     const fromEnd=totalRounds-1-r;
     const pmTblSize=(PRIZE_MONEY[activeTour.type]||[]).length;
-    // Slam (8 slot): pfIdx = round direttamente; ITF (6 slot): formula rounds-based; altri (7 slot): formula fromEnd
-    const pfIdx=pmTblSize>7
-      ?(won&&fromEnd===0?pmTblSize-1:r)
-      :pmTblSize===6
-        ?(won&&fromEnd===0?5:(tt2.rounds-fromEnd))
-        :(won?Math.max(0,6-fromEnd):Math.max(0,6-fromEnd-1));
-    const prz=getMatchMoney(activeTour.type,tt2.prize,pfIdx);
-    const pts=getMatchPts(activeTour.type,fromEnd,won);
+    const nr=r+1;
+
+    // ─── ATP Finals (format roundRobin): logica specifica ───
+    const isATPF = tt2.format==="roundRobin";
+    const isATPFKO = isATPF && r>=3;
+    const isATPFRR = isATPF && r<3;
+    let atpfQualifies=true;
+    let atpfExitStage=null;
+    let atpfGroupWins=0;
+    if(isATPF){
+      const brktCur = liveKey?brackets[liveKey]:null;
+      atpfGroupWins = atpFinalsCountGroupWins(brktCur, player.id, Math.min(r,3));
+      if(r<3 && won) atpfGroupWins++; // conta match corrente
+      if(r===2){
+        atpfQualifies = atpFinalsPlayerQualifies(brktCur, player, won, sets, matchData);
+      }
+      if(r<3){
+        atpfExitStage = atpfQualifies ? null : "group";
+      } else if(r===3){
+        atpfExitStage = won ? null : "sf";
+      } else if(r===4){
+        atpfExitStage = "f";
+      }
+    }
+
+    let prz, pts;
+    let isExit;
+    if(isATPF){
+      // RR phase: exit solo a r===2 e non qualificato. KO phase: standard.
+      if(isATPFRR){
+        isExit = !atpfQualifies;
+      } else {
+        isExit = !won || (nr>=totalRounds);
+      }
+      if(isExit){
+        const rew = atpFinalsReward(atpfGroupWins, atpfExitStage||"group", won);
+        pts = rew.pts; prz = rew.prize;
+      } else {
+        pts = 0; prz = 0;
+      }
+    } else {
+      // Slam (8 slot): pfIdx = round direttamente; ITF (6 slot): formula rounds-based; altri (7 slot): formula fromEnd
+      const pfIdx=pmTblSize>7
+        ?(won&&fromEnd===0?pmTblSize-1:r)
+        :pmTblSize===6
+          ?(won&&fromEnd===0?5:(tt2.rounds-fromEnd))
+          :(won?Math.max(0,6-fromEnd):Math.max(0,6-fromEnd-1));
+      prz=getMatchMoney(activeTour.type,tt2.prize,pfIdx);
+      pts=getMatchPts(activeTour.type,fromEnd,won);
+      isExit = !won || (nr>=totalRounds);
+    }
+
     // Rank derivato dai punti totali aggiornati — coerente con scala reale ATP
     const newTotalPts=(player.atpPoints||0)+pts;
     const newRankFromPts=rankForAtpPts(newTotalPts);
@@ -6465,11 +6847,9 @@ function GameScreen({gs}){
     const resBonus=Math.max(0,((player.stats.resistenza||15)-15)/5)*0.5;
     const fatPerSet=Math.max(2, 5-resBonus);
     const fatGain=Math.round(setsPlayed*fatPerSet);
-    const nr=r+1;
-    const isExit=!won||(nr>=totalRounds);
     const roundRecovery=(!isExit&&won)?7:0;
     // Calcola la nuova history con cap a 30 tornei (unità naturale di cancellazione)
-    const _newHistEntry={week,year,tournament:activeTour.name,type:activeTour.type,surface:activeTour.surface,result:won?"V":"S",round:getRoundName(r,totalRounds),prize:isExit?prz:0,pts:isExit?pts:0,isExit,opp:{name:matchData.opp.name,rank:matchData.opp.rank,nat:matchData.opp.nat||""},sets:sets.map(s=>({pg:s.pg,og:s.og,w:s.w}))};
+    const _newHistEntry={week,year,tournament:activeTour.name,type:activeTour.type,surface:activeTour.surface,result:won?"V":"S",round:getRoundName(r,totalRounds,activeTour.type),prize:isExit?prz:0,pts:isExit?pts:0,isExit,opp:{name:matchData.opp.name,rank:matchData.opp.rank,nat:matchData.opp.nat||""},sets:sets.map(s=>({pg:s.pg,og:s.og,w:s.w}))};
     const _histFull=[...(player.history||[]),_newHistEntry];
     const _cappedHist=(()=>{
       const MAX_TOURN=30;
@@ -6488,7 +6868,7 @@ function GameScreen({gs}){
     const _catKey=activeTour.type;
     if(!_cs[_catKey])_cs[_catKey]={wins:0,losses:0,titles:0,prize:0,pts:0,tourns:0,bestRound:0,firstBestYear:0,firstBestWeek:0,firstBestName:""};
     const _RRANK={"Turno 1":0,"Turno 2":1,"Ottavi di Finale":2,"Sedicesimi di Finale":0,"Quarti di Finale":3,"Semifinale":4,"Finale":5,"Titolo":6};
-    const _roundName=getRoundName(r,totalRounds);
+    const _roundName=getRoundName(r,totalRounds,activeTour.type);
     const _rr=_RRANK[_roundName]??0;
     _cs[_catKey]={..._cs[_catKey],
       wins:_cs[_catKey].wins+(won?1:0),
@@ -6519,20 +6899,57 @@ function GameScreen({gs}){
     let brkt=null;
     if(liveKey&&brackets[liveKey]){
       brkt={...brackets[liveKey]};
+      const isRRbr = brkt.format==="roundRobin";
       // 1. Aggiorna il match del giocatore nel turno corrente
       if(brkt.rounds[r]){
         const playerSurvivorObj=won?{...player,isPlayer:true,stats:player.stats}:null;
+        const pid = player.id;
+        const setsP = (sets||[]).filter(s=>s.pg>s.og).length;
+        const setsO = (sets||[]).length - setsP;
         brkt={...brkt,rounds:brkt.rounds.map((rd,i)=>i===r?{
           ...rd,
-          matches:rd.matches.map(m=>m.isPlayerMatch?{...m,pending:false,winner:won?player.name:matchData.opp.name,wr:won?player.rank:matchData.opp.rank,sets,done:true}:m),
-          survivors:rd.survivors.map(s=>s===null?playerSurvivorObj:s)
+          matches:rd.matches.map(m=>{
+            if(!m.isPlayerMatch) return m;
+            const oppId = m.p1id===pid?m.p2id:m.p1id;
+            const wid = won ? pid : oppId;
+            return {...m,pending:false,
+              winner:won?player.name:matchData.opp.name,
+              wr:won?player.rank:matchData.opp.rank,
+              wid,
+              setsFor:{[pid]:setsP,[oppId]:setsO},
+              sets,done:true};
+          }),
+          ...(isRRbr?{}:{survivors:(rd.survivors||[]).map(s=>s===null?playerSurvivorObj:s)})
         }:rd)};
       }
-      if(!won){
-        brkt={...brkt,winner:matchData.opp.name,wr:matchData.opp.rank,completed:true};
-      } else if(nr<totalRounds){
-        // 2. Simula il turno successivo con i sopravvissuti aggiornati
-        brkt=advanceLiveBracket(brkt,{...player,isPlayer:true},nr);
+      if(isRRbr){
+        // ATP Finals: aggiorna standings con il match del giocatore, poi avanza
+        const pMatch = brkt.rounds[r]?.matches?.find(m=>m.p1id===player.id||m.p2id===player.id);
+        if(pMatch && pMatch.group && brkt.standings && brkt.standings[pMatch.group]){
+          const newStandings={A:{...brkt.standings.A},B:{...brkt.standings.B}};
+          Object.keys(newStandings.A).forEach(k=>newStandings.A[k]={...newStandings.A[k]});
+          Object.keys(newStandings.B).forEach(k=>newStandings.B[k]={...newStandings.B[k]});
+          atpFinalsUpdateStandings(newStandings[pMatch.group], pMatch);
+          brkt={...brkt,standings:newStandings};
+        }
+        if(isExit){
+          // Esce dal torneo: vincitore del bracket = avversario (se KO perso) o null (RR non qualificato)
+          if(r>=3){
+            brkt={...brkt,winner:matchData.opp.name,wr:matchData.opp.rank,completed:true};
+          } else {
+            // RR non qualificato: non c'è un singolo "vincitore" del bracket dal lato giocatore
+            brkt={...brkt,completed:true};
+          }
+        } else if(nr<totalRounds){
+          brkt=advanceLiveBracket(brkt,{...player,isPlayer:true},nr);
+        }
+      } else {
+        if(!won){
+          brkt={...brkt,winner:matchData.opp.name,wr:matchData.opp.rank,completed:true};
+        } else if(nr<totalRounds){
+          // 2. Simula il turno successivo con i sopravvissuti aggiornati
+          brkt=advanceLiveBracket(brkt,{...player,isPlayer:true},nr);
+        }
       }
       setBrackets(prev=>({...prev,[liveKey]:brkt}));
     }
@@ -6556,8 +6973,9 @@ function GameScreen({gs}){
       setMorale(nextMorale);
     }
     setPlayer(np);
-    if(!won){
-      notify(`Eliminato al ${getRoundName(r,totalRounds)} — +€${fmt(prz)} · +${pts}pts`,"#f59e0b");
+    const _isTitle = won && (nr>=totalRounds);
+    if(isExit && !_isTitle){
+      notify(`Eliminato al ${getRoundName(r,totalRounds,activeTour.type)} — +€${fmt(prz)} · +${pts}pts`,"#f59e0b");
       setLastTournResult({round:r+1,totalRounds,week});
       setLastTournName(activeTour?.name||null);
       // Peso sconfitta basato su probabilità teorica pre-match (swp):
@@ -6582,7 +7000,7 @@ function GameScreen({gs}){
         const updatedActiveEvts=aL?[...activeEvtsSnap,aL].slice(0,2):activeEvtsSnap;
         if(aL) setActiveEvents(updatedActiveEvts);
         if(nmL!==nextMorale) setMorale(nmL);
-        {const slamSkipL=(activeTour?.type==="Slam"&&r>=3)?2:1;
+        {const slamSkipL=((activeTour?.type==="Slam"||activeTour?.type==="ATPFinals")&&r>=3)?2:1;
         advanceWeek(pL,{round:r+1,totalRounds},nmL,updatedActiveEvts,slamSkipL);}
         matchDoneInProgress.current=false;
         setNewsFlash(evtL);
@@ -6594,7 +7012,7 @@ function GameScreen({gs}){
         setView("bracketUpdate");
       } else {
         matchDoneInProgress.current=false;
-        {const slamSkip=(activeTour?.type==="Slam"&&r>=3)?2:1;
+        {const slamSkip=((activeTour?.type==="Slam"||activeTour?.type==="ATPFinals")&&r>=3)?2:1;
         advanceWeek(np,{round:r+1,totalRounds},nextMorale,activeEvtsSnap,slamSkip);}
         // Mostra bracket update poi cal
         const _brktLE=liveKey?brackets[liveKey]:null;
@@ -6603,8 +7021,8 @@ function GameScreen({gs}){
         setBracketUpdateData({bracket:_brktLE||brkt,completedRound:r,totalRounds,won:false,isExit:true,isTournEnd:true,tourName:_tourLE.name,tourType:_tourLE.type,tierColor:(TT[_tourLE.type]||TT.ATP250).color,tierLabel:(TT[_tourLE.type]||TT.ATP250).label});
         setView("bracketUpdate");
       }
-    } else {
-      if(nr>=totalRounds){
+    } else if(_isTitle){
+      {
         const _csT={...(np.careerStats||{})};
         const _ckT=activeTour.type;
         if(_csT[_ckT])_csT[_ckT]={..._csT[_ckT],titles:(_csT[_ckT].titles||0)+1};
@@ -6633,7 +7051,7 @@ function GameScreen({gs}){
           if(aT) setActiveEvents(updatedActiveEvtsT);
           if(nmT!==titleMorale) setMorale(nmT);
           // advanceWeek PRIMA, banner nel calendario DOPO
-          {const slamSkipTE=(activeTour?.type==="Slam")?2:1;
+          {const slamSkipTE=(activeTour?.type==="Slam"||activeTour?.type==="ATPFinals")?2:1;
           advanceWeek(pT,{round:totalRounds,totalRounds},nmT,updatedActiveEvtsT,slamSkipTE);}
           matchDoneInProgress.current=false;
           setNewsFlash(evtT);
@@ -6645,7 +7063,7 @@ function GameScreen({gs}){
           setView("bracketUpdate");
         } else {
           matchDoneInProgress.current=false;
-          {const slamSkipT=(activeTour?.type==="Slam")?2:1;
+          {const slamSkipT=(activeTour?.type==="Slam"||activeTour?.type==="ATPFinals")?2:1;
           advanceWeek(npFinal,{round:totalRounds,totalRounds},titleMorale,activeEvtsSnapT,slamSkipT);}
           // Mostra bracket update titolo poi cal
           const _brktTN=liveKey?brackets[liveKey]:null;
@@ -6654,26 +7072,32 @@ function GameScreen({gs}){
           setBracketUpdateData({bracket:_brktTN||brkt,completedRound:r,totalRounds,won:true,isExit:true,isTournEnd:true,tourName:_tourTN.name,tourType:_tourTN.type,tierColor:(TT[_tourTN.type]||TT.ATP250).color,tierLabel:(TT[_tourTN.type]||TT.ATP250).label});
           setView("bracketUpdate");
         }
-      } else {
-        setTourRound(nr);
-        // Estrae avversario dal bracket GIA' aggiornato (brkt, non brackets[liveKey] che e' stale)
-        const playerMatchNr=brkt?.rounds[nr]?.matches?.find(m=>m.isPlayerMatch);
-        const opp2=playerMatchNr?(playerMatchNr.p1obj?.isPlayer?playerMatchNr.p2obj:playerMatchNr.p1obj)||getOppForRound(np.rank,activeTour.type,nr):getOppForRound(np.rank,activeTour.type,nr);
-        const roundName=getRoundName(nr,totalRounds);
-        // Fix caso 3: opp2 non deve mai essere undefined
-        const safeOpp2=opp2||getOppForRound(np.rank,activeTour.type,nr)||getATPPlayer(world,Math.min(400,np.rank+10));
-        setMatchData({tourn:activeTour,opp:safeOpp2,bestOf:activeTour.type==="Slam"?5:3,round:nr,tt:tt2,totalRounds,startMorale:nextMorale,entryCosts:matchData?.entryCosts});
-        setMatchKey(k=>k+1);
-        matchDoneInProgress.current=false;
-        notify(`✅ Avanzato — ${roundName}!`,"#10b981");
-        // Mostra bracket update poi prossimo match
-        const _brktWI=brkt;
-        const _tourWI=activeTour;
-        const _nextView=view==="match"?"matchnext":"match";
-        bracketUpdateCallback.current=()=>{setView(_nextView);};
-        setBracketUpdateData({bracket:_brktWI,completedRound:r,totalRounds,won:true,isExit:false,isTournEnd:false,tourName:_tourWI.name,tourType:_tourWI.type,tierColor:(TT[_tourWI.type]||TT.ATP250).color,tierLabel:(TT[_tourWI.type]||TT.ATP250).label});
-        setView("bracketUpdate");
       }
+    } else {
+      // Continue: prossimo turno (include RR non-exit anche dopo sconfitta nel girone)
+      setTourRound(nr);
+      // Estrae avversario dal bracket GIA' aggiornato (brkt, non brackets[liveKey] che e' stale)
+      const playerMatchNr=brkt?.rounds[nr]?.matches?.find(m=>m.isPlayerMatch);
+      const opp2=playerMatchNr?(playerMatchNr.p1obj?.isPlayer?playerMatchNr.p2obj:playerMatchNr.p1obj)||getOppForRound(np.rank,activeTour.type,nr):getOppForRound(np.rank,activeTour.type,nr);
+      const roundName=getRoundName(nr,totalRounds,activeTour.type);
+      // Fix caso 3: opp2 non deve mai essere undefined
+      const safeOpp2=opp2||getOppForRound(np.rank,activeTour.type,nr)||getATPPlayer(world,Math.min(400,np.rank+10));
+      setMatchData({tourn:activeTour,opp:safeOpp2,bestOf:activeTour.type==="Slam"?5:3,round:nr,tt:tt2,totalRounds,startMorale:nextMorale,entryCosts:matchData?.entryCosts});
+      setMatchKey(k=>k+1);
+      matchDoneInProgress.current=false;
+      if(won){
+        notify(`✅ Avanzato — ${roundName}!`,"#10b981");
+      } else {
+        // ATP Finals RR: partita persa ma torneo prosegue
+        notify(`➡️ Girone prosegue — prossimo: ${roundName}`,"#64748b");
+      }
+      // Mostra bracket update poi prossimo match
+      const _brktWI=brkt;
+      const _tourWI=activeTour;
+      const _nextView=view==="match"?"matchnext":"match";
+      bracketUpdateCallback.current=()=>{setView(_nextView);};
+      setBracketUpdateData({bracket:_brktWI,completedRound:r,totalRounds,won,isExit:false,isTournEnd:false,tourName:_tourWI.name,tourType:_tourWI.type,tierColor:(TT[_tourWI.type]||TT.ATP250).color,tierLabel:(TT[_tourWI.type]||TT.ATP250).label});
+      setView("bracketUpdate");
     }
   }
 
@@ -6935,7 +7359,7 @@ function GameScreen({gs}){
   }
 
   if(trainPrompt){
-    const isWinter=week>=42&&week<=49&&!winterDone;
+    const isWinter=week>=43&&week<=50&&!winterDone;
     const fat=player.fatigue||0;
     const fatCol=fat>70?"#ef4444":fat>40?"#f59e0b":"#10b981";
     const lcRank=player.rank||500;
@@ -6950,7 +7374,7 @@ function GameScreen({gs}){
               {isWinter?"BLOCCO INVERNALE":"ALLENAMENTO"}
             </div>
             <div style={{fontSize:13,color:"#64748b"}}>
-              {isWinter?"Settimane 42–49 · 24 slot da distribuire":`Settimana ${week} · fino a ${week>=42&&week<=51?3:5} slot`}
+              {isWinter?"Settimane 43–50 · 24 slot da distribuire":`Settimana ${week} · fino a ${week>=43&&week<=51?3:5} slot`}
             </div>
           </div>
           {/* Info chiave */}
@@ -7012,8 +7436,9 @@ function GameScreen({gs}){
     const flagsTo=ZONE_FLAGS[tZone]||[];
     return(
       <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999,padding:16}}>
-        <div style={{background:"linear-gradient(160deg,#0a1628,#0f1e35)",border:`1px solid ${tCol}44`,borderRadius:18,maxWidth:360,width:"100%",overflow:"hidden",boxShadow:`0 0 40px ${tCol}22`}}>
+        <div style={{background:"linear-gradient(160deg,#0a1628,#0f1e35)",border:`1px solid ${tCol}44`,borderRadius:18,maxWidth:360,width:"100%",maxHeight:"calc(100dvh - 32px)",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:`0 0 40px ${tCol}22`}}>
 
+          <div style={{flex:1,overflowY:"auto",minHeight:0}}>
           {/* Header torneo — con città grande */}
           {(()=>{
             const restCity=getTourCity(restPrompt.name);
@@ -7149,16 +7574,19 @@ function GameScreen({gs}){
             </div>
           </div>
 
-          {/* Sezione fatica + recovery pack + bottone entra */}
-          <RecoveryPackPanel
-            fatNow={fatNow}
-            totalEntryCost={totalEntryCost}
-            patrimonio={patrimonio}
-            ttype={restPrompt.type==="Slam"?"Slam":restPrompt.type==="ATPFinals"?"M1000":restPrompt.type}
-            tt2color={tt2.color}
-            onEnter={(packFat,packCost)=>doEnterTournament(restPrompt,packFat,packCost)}
-            onCancel={()=>setRestPrompt(null)}
-          />
+          </div>
+          {/* Sezione fatica + recovery pack + bottone entra (footer sempre visibile) */}
+          <div style={{flexShrink:0,borderTop:"1px solid #0d1f3c",background:"#0a1628"}}>
+            <RecoveryPackPanel
+              fatNow={fatNow}
+              totalEntryCost={totalEntryCost}
+              patrimonio={patrimonio}
+              ttype={restPrompt.type==="Slam"?"Slam":restPrompt.type==="ATPFinals"?"M1000":restPrompt.type}
+              tt2color={tt2.color}
+              onEnter={(packFat,packCost)=>doEnterTournament(restPrompt,packFat,packCost)}
+              onCancel={()=>setRestPrompt(null)}
+            />
+          </div>
         </div>
       </div>
     );
@@ -7201,7 +7629,7 @@ function GameScreen({gs}){
   }
   if((view==="match"||view==="matchnext")&&matchData){const liveBrktM=activeTour?.liveKey?brackets[activeTour.liveKey]:null;return<MatchScreen key={matchKey} md={matchData} player={player} staff={staff} onFinish={handleMatchDone} morale={morale} bracket={liveBrktM} tourRound={tourRound} activeEvents={activeEvents} year={year} week={week}/>;}
   if(view==="training"){
-    if(week>=42&&week<=49&&!winterDone)
+    if(week>=43&&week<=50&&!winterDone)
       return<WinterBlockScreen player={player} staff={staff} week={week} year={year} onConfirm={handleWinterConfirm} morale={morale}/>;
     return<TrainingScreen player={player} staff={staff} onTrain={handleTrain} onFinish={handleTrainFinish} trainCount={trainCount} week={week} morale={morale}/>;
   }
@@ -7850,7 +8278,7 @@ function GameScreen({gs}){
                     const sc2=SURF_COL[t.surface];
                     // blockZoneChange: puoi iscriverti solo a tornei nella zona attuale
                     const zoneOk=!isZoneBlocked||(t.zone===pZoneNow);
-                    const ok=canEnter(player.rank,t.type,isOutOfRanking(player))&&!isTournBlocked&&zoneOk&&!t.slamWeek2&&!t.m1000Week2;
+                    const ok=canEnter(player.rank,t.type,isOutOfRanking(player))&&!isTournBlocked&&zoneOk&&!t.slamWeek2&&!t.m1000Week2&&!t.atpFinalsWeek2;
                     const isNow=w2===week;
                     const liveBrkt=isNow?getLiveBracket(t):null;
                     const pZ=player.currentZone||"Europa";
@@ -7904,8 +8332,8 @@ function GameScreen({gs}){
                               ▶ Partecipa<br/><span style={{fontSize:11,opacity:0.90}}>{pZ===tZ?"🏠":"✈️"} −€{fmt(tc)}{pZ!==tZ?" ("+tZ+")":""}</span>
                             </button>
                           )}
-                          {isNow&&!ok&&(t.slamWeek2||t.m1000Week2)&&<div style={{flex:2,textAlign:"center",fontSize:12,color:"#475569",padding:"7px 0",fontStyle:"italic"}}>2ª settimana — accesso automatico</div>}
-                          {isNow&&!ok&&!t.slamWeek2&&!t.m1000Week2&&<div style={{flex:2,textAlign:"center",fontSize:13,color:"#94a3b8",padding:"7px 0"}}>Rank insufficiente</div>}
+                          {isNow&&!ok&&(t.slamWeek2||t.m1000Week2||t.atpFinalsWeek2)&&<div style={{flex:2,textAlign:"center",fontSize:12,color:"#475569",padding:"7px 0",fontStyle:"italic"}}>2ª settimana — accesso automatico</div>}
+                          {isNow&&!ok&&!t.slamWeek2&&!t.m1000Week2&&!t.atpFinalsWeek2&&<div style={{flex:2,textAlign:"center",fontSize:13,color:"#94a3b8",padding:"7px 0"}}>Rank insufficiente</div>}
                           {isNow&&weekDone&&ok&&<div style={{flex:2,textAlign:"center",fontSize:13,color:"#94a3b8",padding:"7px 0"}}>Settimana già in corso</div>}
                           {!isNow&&<div style={{flex:2}}/>}
                           <button onClick={()=>setTourInfo(tourInfo===t.name?null:t.name)}
@@ -7919,10 +8347,40 @@ function GameScreen({gs}){
                           const pmTbl=PRIZE_MONEY[t.type];
                           const rounds2=tt2.rounds||5;
                           const isChal=t.type==="ChallengerA"||t.type==="ChallengerB"||t.type==="ITF";
+                          const isATPF=t.type==="ATPFinals";
                           // ptsTbl discendente: Tit=0,Fin=1,SF=2,QF=3,Ott=4,T2=5,T1=6
                           // ChalA/B pmTbl ascendente: null=0,T1=1,Ott=2,QF=3,SF=4,Fin=5,Tit=6
                           // ATP250+ pmTbl ascendente: T1=0,T2=1,Ott=2,QF=3,SF=4,Fin=5,Tit=6
                           const rows=[];
+                          if(isATPF){
+                            // ATP Finals: struttura girone + SF + Finale (punti reali per match)
+                            const pm=pmTbl||[0,0,0,0,0,0];
+                            rows.push({label:"Girone (0 vittorie)",  pts:0,    prize:pm[0]||0,  col:"#64748b",bold:false});
+                            rows.push({label:"Girone (1 vittoria)",  pts:200,  prize:pm[1]||0,  col:"#94a3b8",bold:false});
+                            rows.push({label:"Girone (2 vittorie)",  pts:400,  prize:pm[2]||0,  col:"#a78bfa",bold:false});
+                            rows.push({label:"Semifinale",           pts:600,  prize:pm[3]||0,  col:"#fbbf24",bold:false});
+                            rows.push({label:"Finale",               pts:1000, prize:pm[4]||0,  col:"#e2e8f0",bold:true});
+                            rows.push({label:"🏆 Titolo",            pts:1500, prize:pm[5]||0,  col:"#f59e0b",bold:true});
+                            return(
+                              <div style={{marginTop:6,background:"#060d18",border:"1px solid #1e3a5f",borderRadius:10,padding:"10px 12px"}}>
+                                <div style={{fontSize:11,fontWeight:800,color:"#6366f1",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>
+                                  ℹ {t.name} — {tt2.label} (8 giocatori · 2 gironi · SF incrociate)
+                                </div>
+                                <div style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:"5px 14px",alignItems:"center"}}>
+                                  <span style={{fontSize:10,color:"#334155",fontWeight:700,letterSpacing:0.8,borderBottom:"1px solid #1e293b",paddingBottom:3}}>SE ARRIVI A</span>
+                                  <span style={{fontSize:10,color:"#334155",fontWeight:700,textAlign:"right",borderBottom:"1px solid #1e293b",paddingBottom:3}}>PTS</span>
+                                  <span style={{fontSize:10,color:"#334155",fontWeight:700,textAlign:"right",borderBottom:"1px solid #1e293b",paddingBottom:3}}>PRIZE</span>
+                                  {rows.map((row,ri)=>(
+                                    <React.Fragment key={ri}>
+                                      <span style={{fontSize:12,color:row.col,fontWeight:row.bold?700:500}}>{row.label}</span>
+                                      <span style={{fontSize:12,fontFamily:"'Rajdhani',sans-serif",fontWeight:700,color:row.pts>0?"#f0f6ff":"#2d3f52",textAlign:"right"}}>{row.pts>0?"+"+row.pts:"—"}</span>
+                                      <span style={{fontSize:12,fontFamily:"'Rajdhani',sans-serif",fontWeight:600,color:row.prize>0?"#10b981":"#2d3f52",textAlign:"right"}}>{row.prize>0?"€"+fmt(row.prize):"—"}</span>
+                                    </React.Fragment>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          }
                           for(let fe=rounds2-1;fe>=1;fe--){
                             const rName=getRoundName(rounds2-1-fe,rounds2);
                             // ptsIdx: T1=6, altri=min(fe+1,5)
