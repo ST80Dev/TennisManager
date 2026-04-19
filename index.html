@@ -6101,7 +6101,7 @@ function GameScreen({gs}){
     if(fx.moraleDelta){
       // Negativo → penalty tier (top più resilienti); Positivo → bonus tier (top più visibili)
       const scaled=fx.moraleDelta<0?fx.moraleDelta*tier.penalty:fx.moraleDelta*tier.bonus;
-      newMorale=clamp(moraleIn+scaled,8,100);
+      newMorale=clamp(Math.round(moraleIn+scaled),8,100);
     }
     // Calo % immediato del morale (scala col penalty tier)
     if(fx.moralePctDrop) newMorale=Math.max(8,Math.round(newMorale*(1-fx.moralePctDrop*tier.penalty)));
@@ -7715,7 +7715,7 @@ function GameScreen({gs}){
                 {l:"V/S",v:`${player.wins}/${player.losses}`,i:"📊",c:null},
                 {l:"Titoli",v:player.titles||0,i:"🥇",c:null},
                 {l:"Fatica",v:`${fat2}%`,i:fat2>70?"🔴":fat2>40?"🟡":"🟢",c:fat2>70?"#ef4444":fat2>40?"#f59e0b":"#10b981"},
-                {l:"Morale",v:`${morale}`,i:morLabel,c:morCol},
+                {l:"Morale",v:`${Math.round(morale||0)}`,i:morLabel,c:morCol},
               ].map((c,i)=>(
                 <div key={i} style={{background:"rgba(255,255,255,0.07)",borderRadius:9,padding:"7px 3px",textAlign:"center",border:"1px solid rgba(255,255,255,0.12)"}}>
                   <div style={{fontSize:15}}>{c.i}</div>
