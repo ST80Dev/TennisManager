@@ -2119,7 +2119,7 @@ function advanceLiveBracket(brkt,playerObj,r){
         sets.push({pg,og});if(w)c1++;else c2++;
       }
       const p1w=c1===tw;
-      matches.push({p1:p1.name,p2:p2.name,p1r:p1.rank,p2r:p2.rank,winner:p1w?p1.name:p2.name,wr:p1w?p1.rank:p2.rank,p1id:p1.id,p2id:p2.id,wid:p1w?p1.id:p2.id,sets,done:true});
+      matches.push({p1:p1.name,p2:p2.name,p1r:p1.rank,p2r:p2.rank,winner:p1w?p1.name:p2.name,wr:p1w?p1.rank:p2.rank,p1id:p1.id,p2id:p2.id,wid:p1w?p1.id:p2.id,sets,done:true,p1obj:p1,p2obj:p2});
       nextSurvivors.push(p1w?p1:p2);
     }
   }
@@ -3322,7 +3322,7 @@ function DrawScreen({bracket, playerName, playerNat, tourName, tourType, surface
       </div>
 
       {/* Tabellone scorrevole — area flex che cresce */}
-      <div style={{flex:1,overflowY:"auto",padding:"0 18px 8px"}}>
+      <div style={{flex:"1 1 0",minHeight:0,overflowY:"auto",padding:"0 18px 8px"}}>
         <div style={{display:"flex",flexDirection:"column",gap:2}}>
           {sectionPlayers.map((p,i)=>{
             const isVisible=i<revealed;
@@ -3467,7 +3467,7 @@ function BracketUpdateScreen({bracket, playerName, completedRound, totalRounds, 
   const [visible, setVisible]=React.useState(false);
   React.useEffect(()=>{
     const t=setTimeout(()=>setVisible(true),80);
-    window.scrollTo({top:0,left:0,behavior:"instant"});
+    try{window.scrollTo(0,0);}catch(e){}
     return()=>clearTimeout(t);
   },[]);
 
@@ -3527,7 +3527,7 @@ function BracketUpdateScreen({bracket, playerName, completedRound, totalRounds, 
         </div>
       </div>
 
-      <div style={{flex:1,overflowY:"auto",padding:"14px 14px 8px"}}>
+      <div style={{flex:"1 1 0",minHeight:0,overflowY:"auto",padding:"14px 14px 8px"}}>
 
         {/* Risultati del round completato — visualizzazione bracket verticale */}
         <div style={{fontSize:11,fontWeight:800,color:"#334155",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8}}>
@@ -3719,7 +3719,7 @@ function MatchScreen({md,player,staff,onFinish,morale,bracket,tourRound,activeEv
   const[trackOffset,setTrackOffset]=useState(0);
   // Al mount della schermata match: riporta lo scroll in cima cosi' l'header è visibile
   React.useEffect(()=>{
-    window.scrollTo({top:0,left:0,behavior:"instant"});
+    try{window.scrollTo(0,0);}catch(e){}
   },[]);
   // Auto-avanza la finestra quando inizia un nuovo set oltre la terza colonna
   React.useEffect(()=>{
@@ -7481,7 +7481,7 @@ function GameScreen({gs}){
       <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999,padding:16}}>
         <div className="modal-vh-limit" style={{background:"linear-gradient(160deg,#0a1628,#0f1e35)",border:`1px solid ${tCol}44`,borderRadius:18,maxWidth:360,width:"100%",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:`0 0 40px ${tCol}22`}}>
 
-          <div style={{flex:1,overflowY:"auto",minHeight:0}}>
+          <div style={{flex:"1 1 0",minHeight:0,overflowY:"auto"}}>
           {/* Header torneo — con città grande */}
           {(()=>{
             const restCity=getTourCity(restPrompt.name);
