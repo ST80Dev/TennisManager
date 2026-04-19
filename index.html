@@ -729,11 +729,11 @@ const CAL = [
   {week:39, name:"Augsburg Challenger",       type:"ChallengerB",surface:"Cemento",     zone:"Europa"},
   {week:40, name:"Brno Challenger",           type:"ChallengerB",surface:"Cemento",     zone:"Europa"},
 
-  // ══ SETT 40 — ATP Finals sett 1 (gironi) ══
-  {week:40, name:"ATP Finals",                type:"ATPFinals",  surface:"Cemento",     zone:"Europa"},
+  // ══ SETT 41 — ATP Finals sett 1 (gironi) — 1 settimana di riposo dopo Bercy ══
+  {week:41, name:"ATP Finals",                type:"ATPFinals",  surface:"Cemento",     zone:"Europa"},
 
-  // ══ SETT 41 — ATP Finals sett 2 (SF + Finale, accesso automatico) ══
-  {week:41, name:"ATP Finals",                type:"ATPFinals",  surface:"Cemento",     zone:"Europa", atpFinalsWeek2:true},
+  // ══ SETT 42 — ATP Finals sett 2 (SF + Finale, accesso automatico) ══
+  {week:42, name:"ATP Finals",                type:"ATPFinals",  surface:"Cemento",     zone:"Europa", atpFinalsWeek2:true},
   {week:8,  name:"Stuttgart Challenger",     type:"ChallengerA",surface:"Terra Rossa",  zone:"Europa"},
   {week:28, name:"Zagreb Challenger",        type:"ChallengerA",surface:"Terra Rossa",  zone:"Europa"},
   {week:39, name:"Bratislava Challenger",    type:"ChallengerA",surface:"Cemento",      zone:"Europa"},
@@ -910,8 +910,8 @@ function buildSponsorOffers(names, rank, week, year, atpPts){
   const tgtAmbiz    = rankForAtpPts(tgtAmbiziPts);
   const tgtGrad     = rankForAtpPts(tgtGradPts);
   const tgtGradChk  = rankForAtpPts(tgtGradChkPts);
-  // Scadenze: protezione zona proibita (pausa 42-51, pre-stagione 1-13)
-  const isPausa = w >= 42;
+  // Scadenze: protezione zona proibita (pausa 43-51, pre-stagione 1-13)
+  const isPausa = w >= 43;
   const baseW = isPausa ? 1 : w;
   const baseY = isPausa ? y+1 : y;
   function rawAdd(dw){
@@ -3422,7 +3422,11 @@ function DrawScreen({bracket, playerName, playerNat, tourName, tourType, surface
 // ═══════════════════════════════════════════════════
 function BracketUpdateScreen({bracket, playerName, completedRound, totalRounds, won, isExit, isTournEnd, tourName, tourType, tierColor, tierLabel, onContinue}){
   const [visible, setVisible]=React.useState(false);
-  React.useEffect(()=>{const t=setTimeout(()=>setVisible(true),80);return()=>clearTimeout(t);},[]);
+  React.useEffect(()=>{
+    const t=setTimeout(()=>setVisible(true),80);
+    window.scrollTo({top:0,left:0,behavior:"instant"});
+    return()=>clearTimeout(t);
+  },[]);
 
   const tt2=TT[tourType]||TT.ATP250;
   const drawSize=Math.pow(2,tt2.rounds);
@@ -3440,6 +3444,13 @@ function BracketUpdateScreen({bracket, playerName, completedRound, totalRounds, 
   const nextOpp=nextPlayerMatch?(nextPlayerMatch.p1===playerName?{name:nextPlayerMatch.p2,rank:nextPlayerMatch.p2r,nat:nextPlayerMatch.p2obj?.nat||""}:{name:nextPlayerMatch.p1,rank:nextPlayerMatch.p1r,nat:nextPlayerMatch.p1obj?.nat||""}):null;
 
   const roundName=(r,tot)=>{
+    if(tourType==="ATPFinals"){
+      if(r===0) return "Girone · Match 1";
+      if(r===1) return "Girone · Match 2";
+      if(r===2) return "Girone · Match 3";
+      if(r===3) return "Semifinale";
+      return "Finale";
+    }
     const fe=tot-1-r;
     return fe===0?"Finale":fe===1?"Semifinale":fe===2?"Quarti di Finale":fe===3?"Ottavi di Finale":`Turno ${r+1}`;
   };
@@ -3457,7 +3468,7 @@ function BracketUpdateScreen({bracket, playerName, completedRound, totalRounds, 
   const winCol="#10b981"; const loseCol="#ef4444"; const pendCol="#60a5fa";
 
   return(
-    <div style={{height:"100vh",background:"#050e1a",color:"#fff",margin:"0 auto",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+    <div style={{height:"100dvh",maxHeight:"100dvh",background:"#050e1a",color:"#fff",margin:"0 auto",display:"flex",flexDirection:"column",overflow:"hidden",position:"fixed",inset:0,zIndex:100}}>
       {/* Header */}
       <div style={{background:"linear-gradient(135deg,#0a1628,#0d1f3a)",borderBottom:`2px solid ${tierColor}44`,padding:"16px 18px 12px",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -3663,6 +3674,10 @@ function MatchScreen({md,player,staff,onFinish,morale,bracket,tourRound,activeEv
   const[gameLog,setGameLog]=useState([]);
   // trackOffset: indice del primo set visibile nel tracker (finestra di 3)
   const[trackOffset,setTrackOffset]=useState(0);
+  // Al mount della schermata match: riporta lo scroll in cima cosi' l'header è visibile
+  React.useEffect(()=>{
+    window.scrollTo({top:0,left:0,behavior:"instant"});
+  },[]);
   // Auto-avanza la finestra quando inizia un nuovo set oltre la terza colonna
   React.useEffect(()=>{
     const currentIdx=sets.length; // set in corso (0-based)
@@ -4714,7 +4729,7 @@ function TrainingScreen({player,staff,onTrain,onFinish,trainCount,week,morale}){
   const sparringLv=getStaffLevel(staff,"sparring");
   const prepLv=getStaffLevel(staff,"prep");
   const physioLv=getStaffLevel(staff,"physio");
-  const isPausa=week>=42&&week<=51;
+  const isPausa=week>=43&&week<=51;
   const slotsMax=isPausa?3:5;
   const slotsLeft=slotsMax-trainCount;
   const canDoStat=slotsLeft>0&&fat<95;
@@ -6521,8 +6536,8 @@ function GameScreen({gs}){
     const csr=p.careerStartRank||400;
     // rankHistory: snapshot aggiunto DOPO il sync rank reale (vedi sotto) — usa il rank reale, non la stima da curva
     updPlayer={...updPlayer,careerStartRank:csr};
-    // Pausa invernale: sett 42-51 — recupero fatica +8/sett extra, morale sale verso 60
-    const isPausa=nw>=42&&nw<=51;
+    // Pausa invernale: sett 43-51 — recupero fatica +8/sett extra, morale sale verso 60
+    const isPausa=nw>=43&&nw<=51;
     if(isPausa){
       updPlayer={...updPlayer,fatigue:Math.round(Math.max(0,(updPlayer.fatigue||0)-8))};
       setMorale(m=>clamp(m+2,0,100));
@@ -7344,7 +7359,7 @@ function GameScreen({gs}){
   }
 
   if(trainPrompt){
-    const isWinter=week>=42&&week<=49&&!winterDone;
+    const isWinter=week>=43&&week<=50&&!winterDone;
     const fat=player.fatigue||0;
     const fatCol=fat>70?"#ef4444":fat>40?"#f59e0b":"#10b981";
     const lcRank=player.rank||500;
@@ -7359,7 +7374,7 @@ function GameScreen({gs}){
               {isWinter?"BLOCCO INVERNALE":"ALLENAMENTO"}
             </div>
             <div style={{fontSize:13,color:"#64748b"}}>
-              {isWinter?"Settimane 42–49 · 24 slot da distribuire":`Settimana ${week} · fino a ${week>=42&&week<=51?3:5} slot`}
+              {isWinter?"Settimane 43–50 · 24 slot da distribuire":`Settimana ${week} · fino a ${week>=43&&week<=51?3:5} slot`}
             </div>
           </div>
           {/* Info chiave */}
@@ -7421,8 +7436,9 @@ function GameScreen({gs}){
     const flagsTo=ZONE_FLAGS[tZone]||[];
     return(
       <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999,padding:16}}>
-        <div style={{background:"linear-gradient(160deg,#0a1628,#0f1e35)",border:`1px solid ${tCol}44`,borderRadius:18,maxWidth:360,width:"100%",overflow:"hidden",boxShadow:`0 0 40px ${tCol}22`}}>
+        <div style={{background:"linear-gradient(160deg,#0a1628,#0f1e35)",border:`1px solid ${tCol}44`,borderRadius:18,maxWidth:360,width:"100%",maxHeight:"calc(100dvh - 32px)",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:`0 0 40px ${tCol}22`}}>
 
+          <div style={{flex:1,overflowY:"auto",minHeight:0}}>
           {/* Header torneo — con città grande */}
           {(()=>{
             const restCity=getTourCity(restPrompt.name);
@@ -7558,16 +7574,19 @@ function GameScreen({gs}){
             </div>
           </div>
 
-          {/* Sezione fatica + recovery pack + bottone entra */}
-          <RecoveryPackPanel
-            fatNow={fatNow}
-            totalEntryCost={totalEntryCost}
-            patrimonio={patrimonio}
-            ttype={restPrompt.type==="Slam"?"Slam":restPrompt.type==="ATPFinals"?"M1000":restPrompt.type}
-            tt2color={tt2.color}
-            onEnter={(packFat,packCost)=>doEnterTournament(restPrompt,packFat,packCost)}
-            onCancel={()=>setRestPrompt(null)}
-          />
+          </div>
+          {/* Sezione fatica + recovery pack + bottone entra (footer sempre visibile) */}
+          <div style={{flexShrink:0,borderTop:"1px solid #0d1f3c",background:"#0a1628"}}>
+            <RecoveryPackPanel
+              fatNow={fatNow}
+              totalEntryCost={totalEntryCost}
+              patrimonio={patrimonio}
+              ttype={restPrompt.type==="Slam"?"Slam":restPrompt.type==="ATPFinals"?"M1000":restPrompt.type}
+              tt2color={tt2.color}
+              onEnter={(packFat,packCost)=>doEnterTournament(restPrompt,packFat,packCost)}
+              onCancel={()=>setRestPrompt(null)}
+            />
+          </div>
         </div>
       </div>
     );
@@ -7610,7 +7629,7 @@ function GameScreen({gs}){
   }
   if((view==="match"||view==="matchnext")&&matchData){const liveBrktM=activeTour?.liveKey?brackets[activeTour.liveKey]:null;return<MatchScreen key={matchKey} md={matchData} player={player} staff={staff} onFinish={handleMatchDone} morale={morale} bracket={liveBrktM} tourRound={tourRound} activeEvents={activeEvents} year={year} week={week}/>;}
   if(view==="training"){
-    if(week>=42&&week<=49&&!winterDone)
+    if(week>=43&&week<=50&&!winterDone)
       return<WinterBlockScreen player={player} staff={staff} week={week} year={year} onConfirm={handleWinterConfirm} morale={morale}/>;
     return<TrainingScreen player={player} staff={staff} onTrain={handleTrain} onFinish={handleTrainFinish} trainCount={trainCount} week={week} morale={morale}/>;
   }
