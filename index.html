@@ -4520,7 +4520,7 @@ function TrainingScreen({player,staff,onTrain,onFinish,trainCount,week,morale}){
             const coachMult=coachLv&&o.stat?coachLv.trainBonus:1.0;
             const prepMult=prepLv&&o.fat>0?prepLv.fatigueReduce:1.0;
             const dimFactor=o.stat?Math.max(0.15,Math.pow(Math.max(0,(35-(cur||0))/35),0.6)):1.0;
-            const coachLvNumD=coachLv?(coachLv.lv||1)-1:0;
+            const coachLvNumD=coachLv?(coachLv.lv||0):0;
             const coachCapD={0:13,1:19,2:25,3:32}[coachLvNumD]||13;
             const isMentaleD=o.stat==="mentale";
             const isAtleD=o.stat==="velocita"||o.stat==="resistenza";
@@ -6164,7 +6164,7 @@ function GameScreen({gs}){
       });
       updPlayer={...updPlayer,stats:agedStats};
     }
-    // Centro di allenamento privato: +1 stat/sett su una stat casuale (effetto simile a sparring base)
+    // Centro di allenamento privato: +0.10 stat/sett su una stat casuale
     // Applicato indipendentemente dalla presenza dello sparring staff
     if(hasCenter){
       const csk=STAT_KEYS[Math.floor(Math.random()*STAT_KEYS.length)];
@@ -6724,7 +6724,7 @@ function GameScreen({gs}){
         // Fix1: dimFactor curva concava ^0.6
         const dimFactor = o.stat ? Math.max(0.15,Math.pow(Math.max(0,(35-curStat)/35),0.6)) : 1.0;
         // Fix3: capFactor coach
-        const coachLvNumW = coachLv?(coachLv.lv||1)-1:0;
+        const coachLvNumW = coachLv?(coachLv.lv||0):0;
         const coachCapBaseW = {0:13,1:19,2:25,3:32}[coachLvNumW]||13;
         const isMentaleW = o.stat==="mentale";
         const isAtleW = o.stat==="velocita"||o.stat==="resistenza";
@@ -6797,7 +6797,7 @@ function GameScreen({gs}){
     const curStat=opt.stat?(player.stats[opt.stat]||0):0;
     const dimFactor=opt.stat?Math.max(0.15,Math.pow(Math.max(0,(35-curStat)/35),0.6)):1.0;
     // Fix3: capFactor coach — gain crolla sopra soglia del coach attivo
-    const coachLvNum=coachLv?(coachLv.lv||1)-1:0;
+    const coachLvNum=coachLv?(coachLv.lv||0):0;
     const coachCapBase={0:13,1:19,2:25,3:32}[coachLvNum]||13;
     const isMentale=opt.stat==="mentale";
     const isAtle=opt.stat==="velocita"||opt.stat==="resistenza";
