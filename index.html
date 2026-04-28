@@ -4556,22 +4556,27 @@ function WinterBlockScreen({player, staff, week, year, onConfirm, morale}){
   const coachLv = getStaffLevel(staff,"coach");
   const prepLv  = getStaffLevel(staff,"prep");
 
+  const mentalLvCap = getStaffLevel(staff,"mental");
+  function coachCapFor(opt){
+    const lvNum = coachLv?(coachLv.lv||0):0;
+    const base = {0:13,1:19,2:25,3:32}[lvNum]||13;
+    const isMentale = opt.stat==="mentale";
+    const isAtle = opt.stat==="velocita"||opt.stat==="resistenza";
+    return base+(isMentale&&mentalLvCap?3:0)+(isAtle&&prepLv?2:0);
+  }
   // Calcola gain stimato per un singolo slot (a una data stat)
   function estGain(opt, fromStat){
     const coachMult = coachLv && opt.stat ? coachLv.trainBonus : 1.0;
     const mid = (opt.gain[0]+opt.gain[1])/2 * coachMult;
     const curStat = fromStat!=null?fromStat:(opt.stat?(player.stats[opt.stat]||0):0);
     const dim = opt.stat ? Math.max(0.15,Math.pow(Math.max(0,(35-curStat)/35),0.6)) : 1.0;
-    const coachLvNumE = coachLv?(coachLv.lv||1)-1:0;
-    const coachCapE = {0:13,1:19,2:25,3:32}[coachLvNumE]||13;
-    const capE = opt.stat?Math.max(0,Math.min(1,(coachCapE-curStat+3)/3)):1.0;
+    const capE = opt.stat?Math.max(0,Math.min(1,(coachCapFor(opt)-curStat+3)/3)):1.0;
     return (mid*dim*capE).toFixed(2);
   }
   // Simula N slot cumulativi: ogni slot parte dalla stat aggiornata dal precedente
   function estStatAfter(opt, nSlots){
     if(!opt.stat||nSlots<=0) return null;
-    const coachLvNum = coachLv?(coachLv.lv||1)-1:0;
-    const coachCap = {0:13,1:19,2:25,3:32}[coachLvNum]||13;
+    const coachCap = coachCapFor(opt);
     const coachMult = coachLv?coachLv.trainBonus:1.0;
     let s = parseFloat(player.stats[opt.stat]||0);
     for(let i=0;i<nSlots;i++){
