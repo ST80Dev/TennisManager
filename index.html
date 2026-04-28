@@ -7481,7 +7481,7 @@ function GameScreen({gs}){
       <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999,padding:16}}>
         <div className="modal-vh-limit" style={{background:"linear-gradient(160deg,#0a1628,#0f1e35)",border:`1px solid ${tCol}44`,borderRadius:18,maxWidth:360,width:"100%",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:`0 0 40px ${tCol}22`}}>
 
-          <div style={{flex:"1 1 0",minHeight:0,overflowY:"auto"}}>
+          <div style={{flex:"1 1 auto",minHeight:0,overflowY:"auto"}}>
           {/* Header torneo — con città grande */}
           {(()=>{
             const restCity=getTourCity(restPrompt.name);
