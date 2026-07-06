@@ -1,23 +1,21 @@
 // ═══════════════════════════════════════════════════════════════════
 // HARNESS — simula N anni di solo-NPC world usando il codice REALE
-// estratto da index.html (righe 114..2418) + npc_system.js
-// Uso: node harness.js [anni] [repliche] [seed]
+// del gioco: js/game_data.js + js/engine.js + js/npc_system.js
+// Uso: node tools/sim_harness.js [anni] [repliche] [seed]
 // ═══════════════════════════════════════════════════════════════════
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const REPO = process.env.REPO_DIR || '/home/user/TennisManager';
+const REPO = process.env.REPO_DIR || path.join(__dirname, '..');
 
 global.window = global;
 global.React = { useState: () => {}, useEffect: () => {}, useRef: () => {} };
-require(path.join(REPO, 'npc_system.js'));
+require(path.join(REPO, 'js/npc_system.js'));
 
-// Estrai la logica pura del gioco (dopo <script type="text/babel"> fino a fine simWeek)
-const lines = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8').split('\n');
-const iStart = lines.findIndex(l => l.includes('type="text/babel"'));
-const iEnd = lines.findIndex(l => l.startsWith('function stripBrackets'));
-if (iStart < 0 || iEnd < 0) throw new Error('markers not found');
-const src = lines.slice(iStart + 1, iEnd).join('\n');
+// Codice reale del gioco (script classici senza JSX, eval-uati in un unico
+// scope insieme all'esperimento per condividere const/let top-level)
+const src = fs.readFileSync(path.join(REPO, 'js/game_data.js'), 'utf8') + '\n' +
+            fs.readFileSync(path.join(REPO, 'js/engine.js'), 'utf8');
 
 const YEARS = parseInt(process.argv[2] || '10', 10);
 const REPS = parseInt(process.argv[3] || '3', 10);

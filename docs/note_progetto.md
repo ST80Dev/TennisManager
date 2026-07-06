@@ -1,62 +1,54 @@
-# ATP CAREER MANAGER — NOTE DI PROGETTO
-# Aggiornato: Luglio 2026 (sessioni 48-51)
-# Da allegare insieme ad index.html all'inizio di ogni nuova sessione
-# File progetto: index.html + npc_system.js (sess.51, NPC_SYSTEM v1.1.0)
+# ATP Career Manager — Note di progetto
 
-═══════════════════════════════════════════════════════════
-PRASSI OPERATIVE — LEGGERE PRIMA DI TUTTO
-═══════════════════════════════════════════════════════════
+*Aggiornato: Luglio 2026 (sessioni 48-51) · NPC_SYSTEM v1.1.0*
+
+> Storico tecnico del progetto: strutture dati, bug risolti, decisioni di design.
+> Le istruzioni operative correnti (struttura file, workflow, verifiche) sono in
+> [CLAUDE.md](../CLAUDE.md); la mappa del codice è in [architettura.md](architettura.md).
+
+## PRASSI OPERATIVE — LEGGERE PRIMA DI TUTTO
 
 1. PRIMA DI MODIFICARE: leggere BUG RISOLTI per evitare regressioni.
-2. LAVORARE SEMPRE DAL FILE /mnt/user-data/outputs/index.html
-   (NON dal file sorgente /mnt/project/ che è la versione originale)
-3. VERIFICA: dopo ogni patch, node -e "..." per confermare parentesi + grep.
-4. DOPO OGNI PACCHETTO SOSTANZIALE: aggiornare note_progetto.txt
-5. OUTPUT: copiare in /mnt/user-data/outputs/ e chiamare present_files.
-6. JSX ANNIDATO: .map() dentro IIFE → chiusura con ); non ])]) o ])])
-   Le variabili di stato (week, player, CAL) NON sono accessibili nei
-   componenti figli — calcolare e passare come props dal genitore.
-   CRITICO: week nel FullCalendarViewer va riferita come currentWeek (prop).
-7. SOSTITUZIONI STRINGA: usare Python (python3 - << 'PYEOF') per gestire
-   encoding UTF-8 e caratteri speciali nei blocchi JSX. str_replace del
-   tool fallisce spesso su blocchi lunghi con emoji o caratteri non-ASCII.
-8. REACT HOOKS: useState/useEffect MAI dentro IIFE, object literal o blocchi
-   condizionali. Estrarre sempre al livello del componente padre.
-   Variabili di stato del GameScreen non accessibili in FullCalendarViewer.
+2. VERIFICA: dopo ogni patch, `node --check` sui file JS e smoke test nel browser (vedi CLAUDE.md).
+3. DOPO OGNI PACCHETTO SOSTANZIALE: aggiornare questo file (docs/note_progetto.md).
+4. JSX ANNIDATO: .map() dentro IIFE → chiusura con ); non ])]) o ])]) Le variabili di stato (week, player, CAL) NON sono accessibili nei componenti figli — calcolare e passare come props dal genitore. CRITICO: week nel FullCalendarViewer va riferita come currentWeek (prop).
+5. SOSTITUZIONI STRINGA: usare Python (python3 - << 'PYEOF') per gestire encoding UTF-8 e caratteri speciali nei blocchi JSX. Le sostituzioni stringa dei tool falliscono spesso su blocchi lunghi con emoji o caratteri non-ASCII.
+6. REACT HOOKS: useState/useEffect MAI dentro IIFE, object literal o blocchi condizionali. Estrarre sempre al livello del componente padre. Variabili di stato del GameScreen non accessibili in FullCalendarViewer.
 
-═══════════════════════════════════════════════════════════
-DESCRIZIONE DEL PROGETTO
-═══════════════════════════════════════════════════════════
+## DESCRIZIONE DEL PROGETTO
 
 Gioco browser (HTML + React inline + Babel) di gestione carriera tennistica ATP.
 Nessun server, nessuna dipendenza esterna tranne CDN React/Babel.
 Salvataggio: localStorage (chiave "atp_career_v3").
-File attivi:
-  • index.html     — UI React + game loop + world init
-  • npc_system.js  — sistema NPC (archetypes, lifecycle, talent, career phase,
-                      early retirement, newgen generation) — sess.50
-Caricato via <script src="npc_system.js"> PRIMA del blocco Babel.
-Esporta window.NPC_SYSTEM, destrutturato in index.html sotto i vecchi nomi
-(getNPCArchetype, getNPCRetireAge, ecc.) per minimizzare l'impatto.
+File attivi (struttura completa in [CLAUDE.md](../CLAUDE.md)):
+```
+  • index.html        — UI React (JSX) + bootstrap
+  • js/game_data.js   — dati di gioco (tornei, punti, premi, sponsor, staff…)
+  • js/engine.js      — motore di simulazione (buildWorld, simWeek, tabelloni…)
+  • js/npc_system.js  — sistema NPC (archetypes, lifecycle, talent, career phase,
+                        early retirement, newgen generation) — sess.50
+```
+I file js/ sono caricati via <script src> PRIMA del blocco Babel.
+npc_system.js esporta window.NPC_SYSTEM, destrutturato in game_data.js sotto
+i vecchi nomi (getNPCArchetype, getNPCRetireAge, ecc.) per minimizzare l'impatto.
 
-═══════════════════════════════════════════════════════════
-STACK TECNICO
-═══════════════════════════════════════════════════════════
+## STACK TECNICO
 
 React 18 CDN (production.min) + Babel standalone JSX. Tutto in un file HTML.
 Script tag: crossorigin + data-presets="react,env" per compatibilità Safari iOS.
 Font: Rajdhani (display/numeri) + DM Sans (body) via Google Fonts.
 
 Componenti principali:
+```
   App · CharCreation · GameScreen · WorldMap · MatchScreen
   TrainingScreen · StaffScreen · SponsorScreen · BracketViewer · FullCalendarViewer
   WinterBlockScreen · RecoveryPackPanel · DrawScreen · BracketUpdateScreen
+```
 
-═══════════════════════════════════════════════════════════
-STRUTTURA DATI PRINCIPALI
-═══════════════════════════════════════════════════════════
+## STRUTTURA DATI PRINCIPALI
 
 TT — TORNEI:
+```
   drawSize = 2^rounds
   Slam:        rounds=7, draw=128, 700.000,  2000pts, minRank 104, rankFloor 1
   M1000:       rounds=6, draw=64,  300.000,  1000pts, minRank 100, rankFloor 1
@@ -69,8 +61,10 @@ TT — TORNEI:
 
   NOTA: rankCeiling ATP250 era 100, ora è 60 (rank 61-100 può ancora giocare ATP250).
   Questo risolve la trappola rolling points alla transizione rank 100-150.
+```
 
 FASCE DI ACCESSO TORNEI (rank giocatore):
+```
   ITF:         rank qualsiasi (solo FC o rank ≥370)
   Challenger B: rank 250–450
   Challenger A: rank 150–370
@@ -79,8 +73,10 @@ FASCE DI ACCESSO TORNEI (rank giocatore):
   Masters 1000: rank 1–100
   Grand Slam:   rank 1–104
   ATP Finals:   rank 1–8
+```
 
 PTS_TABLE (indice: [titolo, fin_persa, SF, QF, Ott, T2, T1]):
+```
   ChallengerA: [ 90, 50, 25,  8,  4, null, 1]
   ChallengerB: [ 44, 24, 12,  4,  2, null, 0]
   ATP250:      [250,150, 80, 30, 15,    5, 2]
@@ -88,23 +84,31 @@ PTS_TABLE (indice: [titolo, fin_persa, SF, QF, Ott, T2, T1]):
   M1000:       [1000,600,360,180,90,   45,10]
   Slam:        [2000,1200,720,360,180, 90,20]
   ITF:         [ 6,  4,  2,  1, null, null, 0]
+```
 
 PRIZE_MONEY (tabella per pfIdx):
+```
   ITF/ChalA/ChalB: tabella fissa per slot
   ATP250/500/M1000/Slam: usano PF[] × tt.prize
   PF = [0.02,0.03,0.05,0.08,0.12,0.22,0.50]
+```
 
 pfIdx formula (CRITICO — non modificare):
+```
   Null-prefix (ITF/ChalA/B): pfIdx_lose = round+1
   No-null (ATP250+):         pfIdx_lose = round
   Titolo:                    len(PRIZE_MONEY[type])-1
+```
 
 SISTEMA PUNTI ATP (curva ricalibrata su dati reali ATP 2026):
+```
   atpPtsForRank(rank) — interpolazione su 39 breakpoint, estesa a rank 500
   Rank 1=12000 · 10=3800 · 50=800 · 100=390 · 200=195 · 400=40 · 500=5
   NPC_FIXED_POOL = sum(atpPtsForRank(1..500)) = 206.347 pts (costante)
+```
 
 COSTI DI PARTECIPAZIONE:
+```
   ENTRY_FEE:    ITF:30 · ChalB:80 · ChalA:300 · ATP250:1000 · ATP500:2700
                 ATPFinals:2700 · M1000:6000 · Slam:10000
   LODGE_BASE:   ITF:50 · ChalB:75 · ChalA:100 · ATP250:400 · ATP500:1000
@@ -114,15 +118,19 @@ COSTI DI PARTECIPAZIONE:
   TRAVEL_BASE:  ITF:200 · ChalB:380 · ChalA:550 · ATP250:1200
                 ATP500:2000 · ATPFinals:2000 · M1000:4000 · Slam:8000
   Zone mult:    stessa=0.30 · adiacente=1.00 · intercontinentale=2.00
+```
 
 STAFF_LEVELS (5 ruoli, 3 livelli):
+```
   coach:   280/560/1100/sett  trainBonus: 1.61/1.90/2.24
   prep:    210/420/840/sett
   mental:  350/700/1400/sett
   sparring:175/350/700/sett   (LOCK rank>250)
   physio:  245/490/980/sett
+```
 
 TRAINING GAIN (aggiornati sess.47):
+```
   Servizio/Dritto/Rovescio/Volee: [0.08, 0.17] per slot
   Velocità/Resistenza:            [0.07, 0.13] per slot
   Focus Mentale:                  [0.05, 0.10] per slot
@@ -130,13 +138,17 @@ TRAINING GAIN (aggiornati sess.47):
   capFactor = max(0, min(1, (coachCap-stat+3)/3))
   coachCap: none=13, base=19, esperto=25, elite=32
   trainBonus: none=1.0, base=1.61, esperto=1.90, elite=2.24
+```
 
 BUDGET INIZIALE PER ETÀ:
+```
   15:1800€ · 16:2400€ · 17:3200€ · 18:4000€ · 19:5000€
   Punti ATP iniziali: 15=0 · 16=12 · 17=26 · 18=40 · 19=81
   Pool stat iniziale: 15=35pt · 16=42 · 17=50 · 18=55 · 19=60
+```
 
 SISTEMA NPC — PACCHETTO C (refactor sess.50, vedi npc_system.js):
+```
   Codice estratto in npc_system.js. Aliasato in index.html ai vecchi nomi.
 
   TALENTO (nuovo, sostituisce initRank/3 e initRank*8):
@@ -190,8 +202,10 @@ SISTEMA NPC — PACCHETTO C (refactor sess.50, vedi npc_system.js):
     (sess.51: RIMOSSO ageBias sulla MR — rallentare la MR dei veterani li
      teneva in alto più a lungo, effetto OPPOSTO all'intento)
   Pool fisso Phase 3b: NPC_FIXED_POOL = 206.347 (costante)
+```
 
 SISTEMA NPC — REVISIONE MOBILITÀ CLASSIFICA (sess.51, npc_system v1.1.0):
+```
   Problema: classifica quasi congelata dopo anni (top10 identica al 100%
   dopo 1 anno, 2 soli n.1 in 10 anni, nessun newgen sopra rank 23,
   |Δrank| top50 ~5/anno). Diagnosi via harness Node che riusa il codice
@@ -251,8 +265,10 @@ SISTEMA NPC — REVISIONE MOBILITÀ CLASSIFICA (sess.51, npc_system v1.1.0):
     Traiettoria tipo: newgen Elite entra 17enne rank ~300 → top10 a 19-20
     → n.1 a 20-22 (stile Sinner/Alcaraz). Vecchi top declinano dai 28-30
     ed escono dal top10 entro i 31-33.
+```
 
 RANK COLLISION — FIX (sess.50):
+```
   Bug: player.rank poteva coincidere con rank di un NPC esistente
        (es. giocatore #5 e NPC Alcaraz anch'esso #5).
   Causa: player.rank calcolato come "NPC con più pts + 1", senza riassegnare
@@ -264,8 +280,10 @@ RANK COLLISION — FIX (sess.50):
   Fallback getATPPlayer: se rank lookup cade sul gap, ritorna NPC vicino
         invece di generarne uno fittizio con rank collidente.
   Condizione: nessuno shift se playerPts<5 (giocatore FC).
+```
 
 MODALITÀ DI GIOCO (gameMode — introdotta sess.49):
+```
   "classic"  — NPC invecchiano, decadono fisicamente e si ritirano normalmente.
                Circuito realistico: dopo anni i top attuali calano o scompaiono.
   "legend"   — NPC cristallizzati: età mai incrementata, nessun decay fisico,
@@ -276,15 +294,19 @@ MODALITÀ DI GIOCO (gameMode — introdotta sess.49):
   Badge "⭐ Leggenda" visibile nell'header del calendario.
   Implementazione: simWeek riceve extraOpts={legendMode}, blocco Phase 0
   (isNewYear aging + retiredIds) protetto con if(!isLegendMode).
+```
 
 ANNO REALE (introdotto sess.49):
+```
   realYear = 2025 + (year - 1)
   Anno 1 di carriera = 2025, Anno 10 = 2034.
   Mostrato al posto di "Anno X" in: header calendario, tab profilo,
   notifica fine stagione, scadenza sponsor.
   Calcolato in GameScreen come costante: const realYear = 2025 + (year - 1).
+```
 
 EVENTI LOG_FLIGHT — FIX FREQUENZA (sess.49):
+```
   Bug: il weighted sample dal pool logico sceglieva SEMPRE un candidato
   se il pool non era vuoto → log_flight scattava ogni 2 settimane.
   Fix: gate probabilistico PRIMA del weighted sample:
@@ -293,8 +315,10 @@ EVENTI LOG_FLIGHT — FIX FREQUENZA (sess.49):
   Volo privato: pulsante nel banner blockZoneChange (solo log_flight,
   non log_visa). Costo per rank: ≤30→8k · ≤60→6k · ≤100→4.5k ·
   ≤150→3k · ≤200→2k · >200: non disponibile.
+```
 
 SORTEGGIO E BRACKET (introdotti sess.48-49):
+```
   DrawScreen: sorteggio animato stile B (seeded prima, poi non-seeded).
     Timing: seeded 220ms, non-seeded 110ms. Footer fisso con T1/QF/SF.
     Logica QF/SF: stesso quarto=QF, stessa metà+quarto diverso=SF.
@@ -307,14 +331,18 @@ SORTEGGIO E BRACKET (introdotti sess.48-49):
   Flusso: entrata torneo → DrawScreen → match → BracketUpdateScreen → ...
   bracketUpdateCallback.current: ref che memorizza l'azione da eseguire
   dopo che l'utente chiude il BracketUpdateScreen.
+```
 
 SCHERMATA INIZIALE (sess.49):
+```
   Import salvataggio disponibile alla schermata di creazione/avvio:
     - Con save esistente: pulsante "📥 Importa salvataggio esterno" sotto Riprendi
     - Senza save: card dedicata con solo il pulsante import
   CharCreation ora accetta prop onImport.
+```
 
 TABELLA SOGLIE TORNEI (sess.49):
+```
   Pannello collassabile nel calendario ("🏆 Soglie accesso tornei").
   Tre stati dinamici per riga:
     ✓ verde = accessibile al rank attuale
@@ -322,89 +350,54 @@ TABELLA SOGLIE TORNEI (sess.49):
     — grigio = non disponibile
   Funziona in entrambe le direzioni (salita e discesa di rank).
   Stato: showTierTable (useState in GameScreen).
+```
 
 NAT_NAMES — POOL NOMI (aggiornato sess.47):
+```
   23 nazionalità × 20 nomi + 20 cognomi
   generateReplacementNPC usa genNameFromSeed(seed)
+```
 
 STORIA PARTITE — history[]:
+```
   Cap: 30 tornei. Ogni entry include: opp:{name,rank,nat}, sets:[{pg,og,w}]
+```
 
 MORALE — Sistema V3:
+```
   Driver principale: pureWinPct (calcolato a morale=50, fatica=0)
   Shift proporzionale al morale di partenza
+```
 
-═══════════════════════════════════════════════════════════
-BUG RISOLTI — EVITARE REGRESSIONI
-═══════════════════════════════════════════════════════════
+## BUG RISOLTI — EVITARE REGRESSIONI
 
 [BUG 1-60: vedi sessioni precedenti]
 
-61. LOG_FLIGHT TROPPO FREQUENTE (sess.49): weighted sample dal pool logico
-    scelto sempre se non vuoto → scattava ogni 2 settimane.
-    Fix: gate probabilistico (3.5%/1.5%) prima del weighted sample.
+61. LOG_FLIGHT TROPPO FREQUENTE (sess.49): weighted sample dal pool logico scelto sempre se non vuoto → scattava ogni 2 settimane. Fix: gate probabilistico (3.5%/1.5%) prima del weighted sample.
 
-62. JSX FRAGMENT ORFANO (sess.49): rimozione riquadro "Log ultimo game"
-    lasciò un </div> ridondante → SyntaxError Babel "Expected closing tag <>".
-    Fix: rimosso il div extra nel pannello win%.
+62. JSX FRAGMENT ORFANO (sess.49): rimozione riquadro "Log ultimo game" lasciò un </div> ridondante → SyntaxError Babel "Expected closing tag <>". Fix: rimosso il div extra nel pannello win%.
 
-63. DRAWSCREEN FOOTER NON FISSO (sess.49): container usava minHeight:"100vh"
-    invece di height:"100vh" → il browser scrollava la pagina intera.
-    Fix: height:"100vh" + overflow:"hidden" sul container.
+63. DRAWSCREEN FOOTER NON FISSO (sess.49): container usava minHeight:"100vh" invece di height:"100vh" → il browser scrollava la pagina intera. Fix: height:"100vh" + overflow:"hidden" sul container.
 
-64. BANDIERA GIOCATORE MANCANTE IN DRAWSCREEN (sess.49): p.nat vuoto per
-    il giocatore locale. Fix: prop playerNat passata da GameScreen.
+64. BANDIERA GIOCATORE MANCANTE IN DRAWSCREEN (sess.49): p.nat vuoto per il giocatore locale. Fix: prop playerNat passata da GameScreen.
 
-65. MATCHIDX MANCANTE NEI MATCH (sess.49): DrawScreen usava m.matchIdx
-    non presente nella struttura bracket. Fix: usa indice forEach (mi).
+65. MATCHIDX MANCANTE NEI MATCH (sess.49): DrawScreen usava m.matchIdx non presente nella struttura bracket. Fix: usa indice forEach (mi).
 
-66. NPC RUNTIME STATE NON PERSISTITO (sess.50): npcForm, npcPersonalLevel
-    (e ora npcCareerPhase, npcYearsOutside150/250) erano dict module-level
-    resettati ad ogni reload → il drift cumulativo veniva perso. Spiega
-    perché dopo 6 anni la top 30 cambiava poco: ogni save/reload ripartiva
-    dai valori iniziali.
-    Fix: useEffect di save include npcState={form,personalLevel,careerPhase,
-    yearsOut150,yearsOut250}. useEffect di mount ripristina da gs.npcState.
+66. NPC RUNTIME STATE NON PERSISTITO (sess.50): npcForm, npcPersonalLevel (e ora npcCareerPhase, npcYearsOutside150/250) erano dict module-level resettati ad ogni reload → il drift cumulativo veniva perso. Spiega perché dopo 6 anni la top 30 cambiava poco: ogni save/reload ripartiva dai valori iniziali. Fix: useEffect di save include npcState={form,personalLevel,careerPhase, yearsOut150,yearsOut250}. useEffect di mount ripristina da gs.npcState.
 
-67. COLLISIONE RANK GIOCATORE-NPC (sess.50): player.rank poteva coincidere
-    con il rank di un NPC (giocatore #5 e Alcaraz #5 entrambi visibili).
-    Fix: shiftNpcRanksForPlayer applicato dopo ogni aggiornamento world.
-    getATPPlayer gestisce il gap al rank del giocatore ritornando NPC vicino.
+67. COLLISIONE RANK GIOCATORE-NPC (sess.50): player.rank poteva coincidere con il rank di un NPC (giocatore #5 e Alcaraz #5 entrambi visibili). Fix: shiftNpcRanksForPlayer applicato dopo ogni aggiornamento world. getATPPlayer gestisce il gap al rank del giocatore ritornando NPC vicino.
 
-68. DRIFT ANNUALE CON SEED COSTANTE (sess.51): driftSeedB usava weekNum nel
-    seed, ma il drift scatta solo a isNewYear dove weekNum vale SEMPRE 1
-    → sv(id*3571+99) identico ogni anno: ogni NPC derivava della stessa
-    entità nella stessa direzione ogni anno, poi si bloccava sul
-    floor/ceiling. Causa principale della classifica congelata.
-    Fix: seed = sv(id*3571 + yearNum*7717 + 99).
+68. DRIFT ANNUALE CON SEED COSTANTE (sess.51): driftSeedB usava weekNum nel seed, ma il drift scatta solo a isNewYear dove weekNum vale SEMPRE 1 → sv(id*3571+99) identico ogni anno: ogni NPC derivava della stessa entità nella stessa direzione ogni anno, poi si bloccava sul floor/ceiling. Causa principale della classifica congelata. Fix: seed = sv(id*3571 + yearNum*7717 + 99).
 
-69. RUMORE SETTIMANALE MORTO (sess.51): noiseSeed=sv((p.id||rank)*week*...)
-    ma p.id è una STRINGA ("p42") → "p42"*week=NaN → sv(NaN)=0 SEMPRE
-    → il "rumore" era un drag costante -noisePct identico per tutti
-    (zero varianza, annullato dalla normalizzazione).
-    Fix: sv(parseIdInt(p.id)*week*7919+13).
+69. RUMORE SETTIMANALE MORTO (sess.51): noiseSeed=sv((p.id||rank)*week*...) ma p.id è una STRINGA ("p42") → "p42"*week=NaN → sv(NaN)=0 SEMPRE → il "rumore" era un drag costante -noisePct identico per tutti (zero varianza, annullato dalla normalizzazione). Fix: sv(parseIdInt(p.id)*week*7919+13).
 
-70. NEWGEN DI TALENTO DECLASSATI (sess.51): getNPCCareerBounds usava
-    isNewgen=initRank>=300, ma dalla sess.50 i newgen top partono a rank
-    180-330 → OGNI newgen Legend (180-250) e gli Elite sotto 300 venivano
-    riclassificati da tierFromInitRank come Journeyman (ceiling 180!).
-    Nessun newgen poteva sfondare — conflitto interno sess.50.
-    Fix: isNewgen = id inizia con "pR" (|| initRank>=300 per legacy).
+70. NEWGEN DI TALENTO DECLASSATI (sess.51): getNPCCareerBounds usava isNewgen=initRank>=300, ma dalla sess.50 i newgen top partono a rank 180-330 → OGNI newgen Legend (180-250) e gli Elite sotto 300 venivano riclassificati da tierFromInitRank come Journeyman (ceiling 180!). Nessun newgen poteva sfondare — conflitto interno sess.50. Fix: isNewgen = id inizia con "pR" (|| initRank>=300 per legacy).
 
-71. AGEBIAS SULLA MR CONTROPRODUCENTE (sess.51): ageBias negativo per i
-    veterani RALLENTAVA la convergenza verso il target più basso →
-    declino più LENTO, li teneva in alto più a lungo (opposto
-    dell'intento "veterani giù"). Rimosso: l'effetto età agisce ora sul
-    TARGET (drift_mod settimanale sul personalLevel).
+71. AGEBIAS SULLA MR CONTROPRODUCENTE (sess.51): ageBias negativo per i veterani RALLENTAVA la convergenza verso il target più basso → declino più LENTO, li teneva in alto più a lungo (opposto dell'intento "veterani giù"). Rimosso: l'effetto età agisce ora sul TARGET (drift_mod settimanale sul personalLevel).
 
-72. LEAK STATO NPC RITIRATI (sess.51): al ritiro venivano ripuliti solo
-    npcCareerPhase e npcYearsOutside150/250 — npcForm e npcPersonalLevel
-    restavano per sempre nel save e falsavano la rinormalizzazione livelli.
-    Fix: delete anche di npcForm/npcPersonalLevel in Phase 0.
+72. LEAK STATO NPC RITIRATI (sess.51): al ritiro venivano ripuliti solo npcCareerPhase e npcYearsOutside150/250 — npcForm e npcPersonalLevel restavano per sempre nel save e falsavano la rinormalizzazione livelli. Fix: delete anche di npcForm/npcPersonalLevel in Phase 0.
 
-═══════════════════════════════════════════════════════════
-DECISIONI DI DESIGN
-═══════════════════════════════════════════════════════════
+## DECISIONI DI DESIGN
 
 - Filtri calendario: due toggle indipendenti combinabili (Accessibili + Mia zona)
 - Rank display: sempre esatto (#420 ecc.), solo "FC" se <5pts ATP
@@ -417,61 +410,58 @@ DECISIONI DI DESIGN
 - personalLevel NPC: floor×8/ceiling÷3 assoluti di carriera
 - NPC_FIXED_POOL costante in Phase 3b
 - Anno 1 classifica NPC quasi statica: drift scatta a isNewYear anno 2+
-- ATP250 rankCeiling=60: rank 61-100 mantiene accesso ATP250
-  (era 100, abbassato per risolvere trappola rolling points transizione)
+- ATP250 rankCeiling=60: rank 61-100 mantiene accesso ATP250 (era 100, abbassato per risolvere trappola rolling points transizione)
 - Anno reale 2025+: immersione narrativa, visibile in tutta la UI
-- Modalità Leggenda: NPC cristallizzati, solo per chi vuole sfidare
-  i top attuali per tutta la carriera senza vederli decadere
+- Modalità Leggenda: NPC cristallizzati, solo per chi vuole sfidare i top attuali per tutta la carriera senza vederli decadere
 
-═══════════════════════════════════════════════════════════
-MODIFICHE — CRONOLOGIA RECENTE
-═══════════════════════════════════════════════════════════
+## MODIFICHE — CRONOLOGIA RECENTE
 
 [sess.1-47: vedi versione precedente note_progetto.txt]
 
+--- SESS.53 ---
+- DIAGNOSTICA DI AVVIO in index.html: dopo la riorganizzazione (sess.52) il gioco
+  dipende dalla cartella js/ accanto a index.html; se un file (o la CDN unpkg)
+  non si carica, la pagina restava nera senza alcun messaggio (console invisibile
+  su Safari iOS). Ora: (1) listener window "error" in <head> raccoglie errori di
+  caricamento/esecuzione in window.__bootErrors; (2) script classico in fondo al
+  body verifica React/ReactDOM/Babel, window.NPC_SYSTEM, game_data (ATP400/SK) ed
+  engine (buildWorld/simWeek) e in caso di problemi mostra un pannello con causa
+  e istruzioni; (3) watchdog 12s: se #root è ancora vuoto (errore nel blocco
+  Babel), mostra comunque il pannello. Nota TDZ: typeof su const/let globali di
+  uno script fallito a metà può lanciare → tutti i check sono in try/catch.
+  Verificato: gioco completo OK (http e file://), senza js/ → pannello, senza
+  CDN → pannello.
+
+--- SESS.52 ---
+- RIORGANIZZAZIONE REPOSITORY (Fasi A/B/C): documentazione in docs/ (.txt → .md,
+  nuovo architettura.md), salvataggi di esempio in saves/, tool Node in tools/.
+  Estratti da index.html i dati di gioco (js/game_data.js) e il motore
+  (js/engine.js); js/npc_system.js spostato da root. index.html conserva solo
+  CSS + UI React (JSX) + bootstrap; il JSX resta lì per il vincolo file://.
+  Ordine di caricamento: npc_system → game_data → engine → blocco Babel.
+  Babel CDN pinnato a @babel/standalone@7. UI di GameScreen riordinata in
+  sezioni con viste estratte in componenti.
+
 --- SESS.51 ---
-- REVISIONE MOBILITÀ CLASSIFICA NPC (vedi sezione dedicata + bug 68-72):
-  fix drift seed annuale, rumore settimanale, declassamento newgen,
-  ageBias MR, leak stato ritirati. Nuove meccaniche: youngGrowthRate,
-  talentRealization, getEffectiveFloorPts, drift_mod/win_mod ora attivi,
-  upgrade giovinezza per originali, tierFromRandom ricalibrata,
-  Phase 1b (rinormalizzazione livelli), gate Leggenda su Phase 1.
-  getDecayRate/getNPCDecayRate rimossi (morti). NPC_SYSTEM v1.1.0.
-  Validato con harness Node su 10 anni (metriche vicine all'ATP reale).
+- REVISIONE MOBILITÀ CLASSIFICA NPC (vedi sezione dedicata + bug 68-72): fix drift seed annuale, rumore settimanale, declassamento newgen, ageBias MR, leak stato ritirati. Nuove meccaniche: youngGrowthRate, talentRealization, getEffectiveFloorPts, drift_mod/win_mod ora attivi, upgrade giovinezza per originali, tierFromRandom ricalibrata, Phase 1b (rinormalizzazione livelli), gate Leggenda su Phase 1. getDecayRate/getNPCDecayRate rimossi (morti). NPC_SYSTEM v1.1.0. Validato con harness Node su 10 anni (metriche vicine all'ATP reale).
 
 --- SESS.48 ---
-- DrawScreen: sorteggio animato stile B con footer fisso
-  Seeded prima (220ms), non-seeded (110ms), sezione 32 slot per draw ≥64
-  Logica QF/SF corretta: stesso quarto=QF, stessa metà+quarto diverso=SF
-  Prop playerNat per bandiera giocatore. height:100vh per footer fisso.
-- BracketUpdateScreen: tabellone post-match obbligatorio con Salta
-  Sostituisce BracketTransition inline nel MatchScreen
-  Integrato nei 5 rami di handleMatchDone (sconfitta×2, titolo×2, vittoria interna)
-  bracketUpdateCallback.current per azione differita post-schermata
+- DrawScreen: sorteggio animato stile B con footer fisso Seeded prima (220ms), non-seeded (110ms), sezione 32 slot per draw ≥64 Logica QF/SF corretta: stesso quarto=QF, stessa metà+quarto diverso=SF Prop playerNat per bandiera giocatore. height:100vh per footer fisso.
+- BracketUpdateScreen: tabellone post-match obbligatorio con Salta Sostituisce BracketTransition inline nel MatchScreen Integrato nei 5 rami di handleMatchDone (sconfitta×2, titolo×2, vittoria interna) bracketUpdateCallback.current per azione differita post-schermata
 - Rimosso pulsante 📋 (bracket viewer) dall'header MatchScreen
 - Pannello win% rimane visibile a fine match (rimossa condizione !result)
 - Rimosso riquadro "Log ultimo game" (lastEvent) dal MatchScreen
 
 --- SESS.50 ---
-- REFACTOR NPC SYSTEM: estratto in npc_system.js (plain JS, loaded via
-  <script src>). Espone window.NPC_SYSTEM, destrutturato in index.html
-  ai vecchi nomi (getNPCArchetype, getNPCRetireAge, ecc.).
-- NUOVO SISTEMA TALENTO: 7 tiers con ceilRank/floorRank assoluti. Sostituisce
-  la vecchia logica initRank/3 (ceiling) e initRank*8 (floor). Hidden talent
-  10% nella fascia 41-200 produce breakout candidates.
-- CAREER PHASE pluriennale: steady/breakthrough/slump con transizioni a
-  isNewYear. Modula il drift annuale (magnitude ×1.5-1.6 + bias segno).
-- EARLY RETIREMENT stocastica: infortunio, burnout mentale, decisione
-  personale. Riduce il lock-in della top 30 reale attuale.
-- NEWGEN upgrade: rank di partenza graduato dal tier (Legend 180-250 vs
-  vecchio 370-400 fisso). Età 16-19 per top tier.
+- REFACTOR NPC SYSTEM: estratto in npc_system.js (plain JS, loaded via <script src>). Espone window.NPC_SYSTEM, destrutturato in index.html ai vecchi nomi (getNPCArchetype, getNPCRetireAge, ecc.).
+- NUOVO SISTEMA TALENTO: 7 tiers con ceilRank/floorRank assoluti. Sostituisce la vecchia logica initRank/3 (ceiling) e initRank*8 (floor). Hidden talent 10% nella fascia 41-200 produce breakout candidates.
+- CAREER PHASE pluriennale: steady/breakthrough/slump con transizioni a isNewYear. Modula il drift annuale (magnitude ×1.5-1.6 + bias segno).
+- EARLY RETIREMENT stocastica: infortunio, burnout mentale, decisione personale. Riduce il lock-in della top 30 reale attuale.
+- NEWGEN upgrade: rank di partenza graduato dal tier (Legend 180-250 vs vecchio 370-400 fisso). Età 16-19 per top tier.
 - RETIREMENT distribution più ampia: 30% 32-34 · 55% 35-37 · 12% 38-40 · 3% 41-43
 - GAIN CAP bonus giovani esteso: <27 ×1.3 (nuovo fascia).
-- FIX RANK COLLISION: shiftNpcRanksForPlayer garantisce che player.rank
-  mai coincida con un rank NPC. Applicato in advanceWeek, migrate, rigenera.
-- PERSISTENZA NPC STATE: npcForm, npcPersonalLevel, npcCareerPhase,
-  npcYearsOutside150/250 salvati in gs.npcState. Senza, il drift si
-  perdeva ad ogni reload.
+- FIX RANK COLLISION: shiftNpcRanksForPlayer garantisce che player.rank mai coincida con un rank NPC. Applicato in advanceWeek, migrate, rigenera.
+- PERSISTENZA NPC STATE: npcForm, npcPersonalLevel, npcCareerPhase, npcYearsOutside150/250 salvati in gs.npcState. Senza, il drift si perdeva ad ogni reload.
 
 --- SESS.49 ---
 - ATP250 rankCeiling: 100 → 60 (rank 61-100 accede ad ATP250)
@@ -484,31 +474,17 @@ MODIFICHE — CRONOLOGIA RECENTE
 - Fix Safari iOS: React production.min, crossorigin, data-presets="react,env"
 - Fix JSX fragment orfano (</div> ridondante dopo rimozione lastEvent)
 
-═══════════════════════════════════════════════════════════
-FEATURE NON IMPLEMENTATE / ROADMAP
-═══════════════════════════════════════════════════════════
+## FEATURE NON IMPLEMENTATE / ROADMAP
 
 - Schermata viaggio arricchita (fase 2 "atmosfera torneo")
 - Schermata benvenuto torneo (fase 3 "atmosfera torneo")
 - Schermata vittoria cinematografica · Momentum bar · Telecronaca
 - Tema chiaro/scuro · Stili avversari · Wild card ATP250
-- Compressione mid-table NPC (rank 5-10 guadagnano, rank 20-100 perdono):
-  proposta: alzare NPC_PTS_MULT per ATP250/ATP500 specificamente
-  → pendente test su save fresco
+- Compressione mid-table NPC (rank 5-10 guadagnano, rank 20-100 perdono): proposta: alzare NPC_PTS_MULT per ATP250/ATP500 specificamente → pendente test su save fresco
 
-═══════════════════════════════════════════════════════════
-ISTRUZIONI PER NUOVA SESSIONE
-═══════════════════════════════════════════════════════════
+## ISTRUZIONI PER NUOVA SESSIONE
 
-1. Allega note_progetto.txt + index.html (da /mnt/user-data/outputs/)
-2. "Riprendi il progetto ATP Career Manager dalle note allegate"
-3. SEMPRE lavorare da /mnt/user-data/outputs/index.html
-4. Leggere PRASSI OPERATIVE e BUG RISOLTI prima di modificare
-5. Usare Python per sostituzioni su blocchi JSX con caratteri speciali
-6. ULTIMA SESSIONE (49):
-   - ATP250 ceiling 60, log_flight fix frequenza, volo privato
-   - Tabella soglie tornei nel calendario
-   - Modalità Leggenda (gameMode: classic/legend)
-   - Anno reale 2025+(year-1) in tutta la UI
-   - Import save alla schermata iniziale
-   - Fix Safari iOS (React production + crossorigin + data-presets)
+1. Leggere [CLAUDE.md](../CLAUDE.md) (struttura repository, workflow git, verifiche).
+2. Leggere PRASSI OPERATIVE e BUG RISOLTI in questo file prima di modificare.
+3. Per la mappa del codice (file, funzioni, strutture dati) vedere [architettura.md](architettura.md).
+4. Usare Python per sostituzioni su blocchi JSX con caratteri speciali.

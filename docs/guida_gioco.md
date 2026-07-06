@@ -1,9 +1,8 @@
-# ATP CAREER MANAGER — GUIDA AL GIOCO
-# Aggiornato: Aprile 2026 (sessione 49)
+# ATP Career Manager — Guida al gioco
 
-═══════════════════════════════════════════════════════════
-COS'E' QUESTO GIOCO
-═══════════════════════════════════════════════════════════
+*Aggiornato: Aprile 2026 (sessione 49)*
+
+## COS'E' QUESTO GIOCO
 
 Sei un giovane tennista che vuole scalare il ranking ATP partendo
 dal basso. Gestisci ogni settimana: tornei, allenamenti, staff tecnico e
@@ -14,27 +13,30 @@ Scegli quando iniziare: a 15 anni parti da zero (fuori classifica) con una
 carriera lunga davanti. A 19 anni arrivi gia' con esperienza, punti ATP e
 piu' budget, ma con meno anni disponibili. Ogni percorso e' diverso.
 
-═══════════════════════════════════════════════════════════
-CREAZIONE DEL PERSONAGGIO
-═══════════════════════════════════════════════════════════
+## CREAZIONE DEL PERSONAGGIO
 
 Scegli nome, nazionalita (determina la zona geografica di partenza),
 ETA' DI INIZIO, uno stile di gioco e la MODALITA' DI GIOCO.
 
 ARCHETIPI DI GIOCO:
+```
   Baseliner       — resistenza e fondo campo, ideale su terra rossa
   Serve & Volley  — servizio e rete, ideale su erba
   All-Rounder     — equilibrato, mentale alto, versatile
   Attaccante      — dritto devastante, aggressivo da fondo
+```
 
 ETA' DI INIZIO — cinque profili di carriera:
+```
   15 anni  Talento Precoce   — 0 pts ATP · 1.800€ · 35pt stat
   16 anni  Giovane Promessa  — 12 pts ATP · 2.400€ · 42pt stat
   17 anni  Esordiente        — 26 pts ATP · 3.200€ · 50pt stat  [default]
   18 anni  Profilo Standard  — 40 pts ATP · 4.000€ · 55pt stat
   19 anni  Carriera Avviata  — 81 pts ATP · 5.000€ · 60pt stat
+```
 
 MODALITA' DI GIOCO:
+```
   ⏳ Classica — Gli NPC invecchiano stagione dopo stagione e si ritirano
     quando raggiungono l'eta' limite. Il circuito si rinnova nel tempo:
     dopo anni potresti non trovare piu' Sinner o Alcaraz ai vertici.
@@ -47,27 +49,33 @@ MODALITA' DI GIOCO:
     Potrai sfidare Sinner e Alcaraz anche nell'anno 2035 della tua carriera,
     agli stessi livelli di oggi. Il TUO giocatore invecchia normalmente.
     Ideale per chi vuole mantenere il fascino di sfidare i top attuali.
+```
 
 ANNO DI CARRIERA:
+```
   Il gioco mostra l'anno reale: Anno 1 = 2025, Anno 2 = 2026, ecc.
   Vedrai "2025 · Sett. 1", "2034 · Sett. 12" ecc. nell'interfaccia.
   In modalita' Leggenda, il badge "⭐ Leggenda" appare nell'header.
+```
 
 Distribuisci i punti disponibili (da 35 a 60 in base all'eta') su 7 caratteristiche (1-35):
+```
   Servizio · Dritto · Rovescio · Volee · Velocita · Resistenza · Mentale
+```
 
-═══════════════════════════════════════════════════════════
-LA SETTIMANA TIPO
-═══════════════════════════════════════════════════════════
+## LA SETTIMANA TIPO
 
 PARTECIPA A UN TORNEO
+```
   Scegli dal calendario e premi "Partecipa". Si apre sempre una schermata
   di conferma con tutti i costi (viaggio + entry fee + alloggio), la fatica
   attuale e il turno minimo per pareggiare le spese.
   Il premio in denaro arriva solo quando esci (eliminazione o titolo).
   Nelle settimane torneo NON paghi il costo di vita — e' gia' incluso.
+```
 
 ALLENA QUESTA SETTIMANA
+```
   Se non giochi un torneo, alloca fino a 5 slot (3 durante la pausa invernale)
   tra allenamenti specifici e riposo.
   Esempi:
@@ -76,41 +84,45 @@ ALLENA QUESTA SETTIMANA
     5 allenamenti              ->  fatica elevata, rischioso
   Il riposo recupera il 45% della stanchezza e ti restituisce morale.
   Ogni settimana senza torneo sostieni il costo di vita.
+```
 
-═══════════════════════════════════════════════════════════
-LA MAPPA MONDIALE
-═══════════════════════════════════════════════════════════
+## LA MAPPA MONDIALE
 
 L'header mostra sempre le 4 zone geografiche come tile affiancate:
+```
   Nord & Sud America · Europa & Russia · Africa & Medio Oriente · Asia & Pacifico
+```
 
 La tile della tua zona attuale e' evidenziata. Le altre tile mostrano
 il costo di viaggio verso il torneo accessibile piu' vicino in quella zona.
 Non esiste spostamento libero senza torneo — ci si muove solo iscrivendosi.
 
-═══════════════════════════════════════════════════════════
-TRASFERIMENTI E JET LAG
-═══════════════════════════════════════════════════════════
+## TRASFERIMENTI E JET LAG
 
 Il mondo e' diviso in 4 zone: Europa · Americas · Asia-Pacifico · Africa-MO
 
 Costi di viaggio per tipo torneo (zona stessa / vicina / intercontinentale):
+```
   Challenger B:  114  /    380 /   760
   Challenger A:  165  /    550 / 1.100
   ATP 250:       360  /  1.200 / 2.400
   ATP 500:       600  /  2.000 / 4.000
   Masters 1000: 1.200 /  4.000 / 8.000
   Grand Slam:   2.400 /  8.000 / 16.000
+```
 
 Anche i tornei nella stessa zona hanno un costo locale (30% della base).
 Le zone "vicine" pagano il costo base pieno (x1.00), le intercontinentali
 il doppio (x2.00). Americas<->Asia e Americas<->Africa sono intercontinentali.
 
 Jet lag (fatica aggiuntiva all'arrivo):
+```
   Stessa zona: +0%  |  Zona vicina: +12%  |  Intercontinentale: +17-22%
   Un fisioterapista Elite riduce il jet lag fino al 75%.
+```
 
 VOLO BLOCCATO:
+```
   Occasionalmente (circa 1-2 volte a stagione) un evento logistico puo'
   bloccare i tuoi spostamenti tra zone per qualche settimana.
   Se scatta un "Volo cancellato", puoi comunque giocare nella tua zona attuale.
@@ -118,13 +130,13 @@ VOLO BLOCCATO:
   per sbloccare immediatamente gli spostamenti. Il costo scala per rank:
     Rank 1-30: €8.000 · Rank 31-60: €6.000 · Rank 61-100: €4.500
     Rank 101-150: €3.000 · Rank 151-200: €2.000 · Rank >200: non disponibile
+```
 
-═══════════════════════════════════════════════════════════
-I COSTI DI PARTECIPAZIONE A UN TORNEO
-═══════════════════════════════════════════════════════════
+## I COSTI DI PARTECIPAZIONE A UN TORNEO
 
 Ogni torneo ha tre costi immediati, visibili nella schermata di conferma:
 
+```
   Viaggio      — spostamento locale o aereo (vedi tabella sopra)
   Entry fee    — quota iscrizione al torneo
   Alloggio     — soggiorno per te + quota per ogni collaboratore
@@ -137,19 +149,21 @@ Ogni torneo ha tre costi immediati, visibili nella schermata di conferma:
     Challenger B 75 + 20/collab · Challenger A 100 + 40/collab
     ATP250 400 + 70/collab · ATP500 1.000 + 150/collab
     M1000 2.500 + 350/collab · Slam 5.000 + 700/collab
+```
 
 Regola pratica Challenger B senza staff (zona locale):
+```
   Costo totale 269 (viaggio 114 + entry 80 + lodge 75).
   T1 paga 300 — copre il 111% dei costi. Pareggi gia' al T1.
+```
 
 La schermata mostra anche il patrimonio dopo l'entrata e il turno minimo
 per pareggiare le spese.
 
-═══════════════════════════════════════════════════════════
-LE FINANZE E IL COSTO DI VITA
-═══════════════════════════════════════════════════════════
+## LE FINANZE E IL COSTO DI VITA
 
 COSTO DI VITA SETTIMANALE
+```
   Nelle settimane in cui NON giochi un torneo il gioco deduce automaticamente
   un costo di vita. Durante la pausa invernale (sett. 42-51) e' ridotto al 60%.
 
@@ -162,13 +176,17 @@ COSTO DI VITA SETTIMANALE
     Rank 101-150: 200/sett  — professionista full
     Rank  51-100: 280/sett  — circuito principale
     Rank <= 50:   420/sett  — top player
+```
 
 Se il saldo va in negativo:
+```
   4 sett. in rosso -> staff piu' costoso si licenzia automaticamente
   8 sett. in rosso -> GAME OVER
   Essere in rosso abbassa il morale di -3 ogni settimana libera.
+```
 
 SPONSOR
+```
   Nella sezione Staff trovi il bottone "Sponsor". Hai sempre 3 offerte,
   puoi attivarne solo una alla volta. Lo sponsor accredita subito i fondi;
   se non raggiungi l'obiettivo entro la scadenza, restituisci parte del denaro.
@@ -192,78 +210,90 @@ SPONSOR
 
   NOTA: se hai un evento negativo grave attivo, le scadenze sponsor vengono
   automaticamente congelate per non crearti un doppio malus economico.
+```
 
-═══════════════════════════════════════════════════════════
-LE CARATTERISTICHE E LA PROGRESSIONE
-═══════════════════════════════════════════════════════════
+## LE CARATTERISTICHE E LA PROGRESSIONE
 
 Scala 1-35. Riferimento orientativo:
+```
   Top 1-5: ~32  |  Top 10: ~28  |  Top 50: ~20  |  Top 100: ~16
   Rank 200: ~9.5  |  Rank 400: ~8.0
 
   (Le stat degli NPC sono calibrate sul rank, indipendentemente dai punti ATP.)
+```
 
 La crescita e' lenta con rendimento decrescente. Specializzarsi su 3-4
 caratteristiche e' piu' efficace che allenare tutto uniformemente.
 
 Gain settimanali per slot (senza coach):
+```
   Servizio/Dritto/Rovescio/Volee: +0.08/0.17pt
   Velocita/Resistenza: +0.07/0.13pt  |  Focus Mentale: +0.05/0.10pt
   Un coach amplifica fino a oltre il doppio (Elite: x2.24).
+```
 
 La crescita richiede mesi di lavoro costante. Concentrando 4 slot su
 3 stat principali, in un anno (con 10 tornei) guadagni circa 5-7pt netti
 per stat allenata. Le stat non allenate decadono lentamente (trascurabile).
 
-═══════════════════════════════════════════════════════════
-LA FATICA
-═══════════════════════════════════════════════════════════
+## LA FATICA
 
 Scala 0-100. La penalita' alle prestazioni scatta solo sopra il 40%:
+```
   40%: nessuna penalita'  |  60%: -8%  |  80%: -17%  |  100%: -25%
+```
 
 Fonti di fatica:
+```
   Allenamento: Srv/Drt/Rov/Vol +11%/slot · Fitness/Res +14%/slot · Mentale +7%/slot
   Match: +2-6% per set giocato (ridotto dalla Resistenza sopra 15)
   Jet lag: +12% zona vicina · +17-22% intercontinentale
+```
 
 Recupero:
+```
   Slot Riposo: -45% · Settimana libera: -3% · Pausa invernale: -8%/sett extra
   Vittoria in torneo: -5% prima del match successivo
   Fisioterapista: recupero extra ogni settimana (Base/Esperto/Elite)
+```
 
 Il Preparatore Atletico riduce la fatica generata dagli allenamenti:
+```
   Base: -10% fatica per slot · Esperto: -20% · Elite: -30%
+```
 
-═══════════════════════════════════════════════════════════
-IL MORALE
-═══════════════════════════════════════════════════════════
+## IL MORALE
 
 Scala 0-100, influenza tutta la forza del giocatore:
+```
   Morale 100 -> forza x1.05  |  Morale 50 -> x1.00  |  Morale 0 -> x0.94
+```
 
 Il morale e' asimmetrico: sotto 50 il coefficiente e' x0.06 (max -6%),
 sopra 50 e' x0.05 (max +5%). Gestirlo sopra 50 e' importante.
 
 Variazioni tipiche:
+```
   +5 a +18 per vittoria (dipende da upset, turno, titolo)
   -3/-4 per sconfitta (meno se arrivi tardi nel torneo)
   -2/sett senza torneo (sotto 35: -1 · sotto 20: invariato)
   -3/sett in rosso economicamente
   +4 per slot riposo  |  +2/sett durante pausa invernale
+```
 
 PROTEZIONI ANTI-SPIRALE:
+```
   Floor soft: morale non scende mai sotto 8.
   Sconfitte fanno meno danni gia' sotto 30.
   Morale sotto 35: penalita' gain allenamento -20%.
   Fine stagione: ricalibra verso 50 (media pesata 60/40).
+```
 
-═══════════════════════════════════════════════════════════
-I TORNEI E IL CALENDARIO
-═══════════════════════════════════════════════════════════
+## I TORNEI E IL CALENDARIO
 
 CATEGORIE E ACCESSO:
 
+```
   Challenger B  — rank #250-450 · 15.000 prize · 44pts titolo
                   Palestra iniziale: premi modesti, pochi punti ATP.
 
@@ -295,69 +325,82 @@ CATEGORIE E ACCESSO:
     ✓ verde = accessibile ora · ~ giallo = entro 15 rank · — grigio = non disponibile
     Funziona in entrambe le direzioni: utile anche se stai perdendo rank
     per capire cosa tornerai a poter giocare scendendo di posizione.
+```
 
 TRAPPOLA ROLLING POINTS (rank 60-100):
+```
   I punti ATP durano 52 settimane esatte. Quando sali da rank ~200 a rank ~100
   grazie a SF/Finali/Titoli negli ATP250, l'anno dopo devi DIFENDERE quei punti.
   Se nel frattempo sei salito oltre rank 60 e non puoi piu' giocare ATP250,
   i punti scadono senza rimpiazzo — il ranking scende.
   Soluzione: fino a rank 60 puoi ancora giocare ATP250 per difendere i tuoi punti
   mentre costruisci le abilita' per fare risultati negli ATP500/M1000.
+```
 
 PUNTI ATP — STRUTTURA:
+```
   Challenger A:  T1 1 · Ott 4 · QF 8 · SF 25 · Fin 50 · Tit 90
   Challenger B:  T1 0 · Ott 2 · QF 4 · SF 12 · Fin 24 · Tit 44
   ATP 250:       T1 2 · Ott 15 · QF 30 · SF 80 · Fin 150 · Tit 250
   ATP 500:       T1 5 · Ott 20 · QF 45 · SF 90 · Fin 160 · Tit 300 (+ finale)
   Masters 1000:  T1 10 · Ott 45 · QF 90 · SF 180 · Fin 360 · Tit 600 (+ finale)
   Grand Slam:    T1 10 · T2 45 · Ott 90 · QF 180 · SF 360 · Fin 720 · Tit 1200 (+ finale)
+```
 
 PREMI IN DENARO:
+```
   Challenger B:  T1 300 · Ott 795 · QF 1.600 · SF 2.500 · Fin 3.300 · Tit 7.500
   Challenger A:  T1 405 · Ott 900 · QF 2.000 · SF 4.500 · Fin 9.000 · Tit 17.500
   ATP 250:       T1 ~1.200 · SF ~26.000 · Titolo ~60.000
   ATP 500:       T1 ~7.000 · SF ~77.000 · Titolo ~175.000
   Masters 1000:  T1 ~20.000 · SF ~220.000 · Titolo ~500.000
   Slam:          T1 ~50.000 · SF ~300.000 · Titolo ~1.250.000
+```
 
 PUNTI ROLLING 52 SETTIMANE:
+```
   I punti durano esattamente un anno. Alla settimana X dell'anno 2
   perdi i punti guadagnati alla stessa settimana dell'anno 1.
   Notifica rossa se stai per perdere 20+ punti.
   Il calendario mostra quanti punti devi difendere nelle prossime settimane.
+```
 
 CALENDARIO:
+```
   4 Grand Slam: Australian Open (s2-3) · Roland Garros (s20-21)
                 Wimbledon (s24-25) · US Open (s31-32)
   Pausa invernale: sett 42-51.
   12 Challenger A per zona (48 totali), ~19 Challenger B per zona (79 totali).
+```
 
-═══════════════════════════════════════════════════════════
-IL SORTEGGIO E IL TABELLONE
-═══════════════════════════════════════════════════════════
+## IL SORTEGGIO E IL TABELLONE
 
 All'inizio di ogni torneo viene mostrato il sorteggio animato:
+```
   Le teste di serie appaiono prima nei loro slot fissi, poi i non-seedati.
   Il footer mostra sempre il tuo avversario al primo turno e i possibili
   avversari ai Quarti di Finale e in Semifinale.
   Per draw grandi (64+) vedi solo la sezione da 32 slot intorno a te.
   Premi "Salta" per saltare l'animazione, "Al primo turno" per iniziare.
+```
 
 Dopo ogni match vinto (o a fine torneo) appare il tabellone aggiornato:
+```
   Mostra i risultati del turno appena completato con ✓/✗ per ogni match.
   Se hai vinto, indica chi incontrerai al turno successivo.
   Se il torneo e' finito, mostra una schermata celebrativa o di saluto.
+```
 
-═══════════════════════════════════════════════════════════
-LA PAUSA INVERNALE (sett. 42-51) — BLOCCO CONDENSATO
-═══════════════════════════════════════════════════════════
+## LA PAUSA INVERNALE (sett. 42-51) — BLOCCO CONDENSATO
 
 Nelle settimane 42-49 si apre una schermata dedicata dove distribuisci
 tutti i 24 slot di allenamento (8 settimane x 3) in una volta sola.
 Confermi e il gioco salta direttamente alla settimana 50.
 
+```
   Nessun torneo. Costo vita ridotto al 60%. Fatica -8%/sett extra. Morale +2/sett.
   Slot massimi a settimana: 3 (invece di 5).
+```
 
 Consiglio: 2 allenamenti + 1 riposo per arrivare riposato alla nuova stagione.
 Arrivare all'anno nuovo con bassa fatica e morale alto vale piu'
@@ -365,13 +408,12 @@ di qualche decimo di stat in piu'.
 
 Le settimane 50-51 sono normali (pre-stagione), con 3 slot massimi.
 
-═══════════════════════════════════════════════════════════
-LA PARTITA
-═══════════════════════════════════════════════════════════
+## LA PARTITA
 
 Game per game. Best of 3 (ATP) o best of 5 (Slam).
 
 ANALISI PRE-MATCH (pannello LIVE):
+```
   Prima del primo game vedi il pannello espanso con:
   - Probabilita' di vittoria teorica (%)
   - Barra colorata verde/arancio/rosso
@@ -379,136 +421,179 @@ ANALISI PRE-MATCH (pannello LIVE):
   - Lista bonus/malus attivi (coach, morale, fatica, superficie, eventi)
   Il pannello rimane visibile anche a fine match — utile per capire
   perche' hai vinto o perso in termini di probabilita' teorica.
+```
 
 BADGE TURNO:
+```
   T1/T2/Ottavi -> grigio  |  Quarti -> viola  |  Semifinale/Finale -> arancione
+```
 
 CARTE BONUS (3 per partita):
+```
   Ace Boost · Clutch · Rally · Speed · Net · Wind
   Ace Boost solo sui game di servizio (2 turni). Altri bonus durano 3 game.
   Il Mental Coach potenzia le carte (+50/80/120%).
+```
 
-═══════════════════════════════════════════════════════════
-LO STAFF TECNICO (5 ruoli, 3 livelli)
-═══════════════════════════════════════════════════════════
+## LO STAFF TECNICO (5 ruoli, 3 livelli)
 
+```
   Coach Tecnico     — gain allenamento +61/90/124% · bonus forza in match +1.5/3/5%
   Preparatore       — fatica allenamento -10/20/30% per slot
   Mental Coach      — efficacia carte bonus +50/80/120% · riduce durata crisi mentali
   Sparring Partner  — +stat casuale/sett automatica (solo rank <=250)
   Fisioterapista    — jet lag -30/55/75% · recupero extra/sett · riduce durata infortuni
+```
 
 Costi settimanali (base/esperto/elite):
+```
   Coach 280/560/1.100 · Prep 210/420/840 · Mental 350/700/1.400
   Sparring 175/350/700 · Fisio 245/490/980
+```
 
 Note importanti:
+```
   - Il Coach Tecnico da' un bonus alla forza in match ANCHE senza allenare.
     Tenerlo attivo tutto l'anno ha senso economico dal rank ~200 in su.
   - Il Mental Coach riduce la durata degli eventi di crisi psicologica.
   - Il Fisioterapista riduce la durata degli eventi di infortunio fisico.
   - Non assumere staff finche' non hai 8-10 settimane di costi totali in riserva.
+```
 
-═══════════════════════════════════════════════════════════
-EVENTI CASUALI DI CARRIERA
-═══════════════════════════════════════════════════════════
+## EVENTI CASUALI DI CARRIERA
 
 Dal terzo anno di carriera possono verificarsi eventi imprevisti che
 influenzano temporaneamente il gioco. Sono parte della variabilita' realistica
 del circuito professionistico — fastidiosi ma mai catastrofici.
 
 CATEGORIE:
+```
   Infortuni (rosso)    — fatica floor, penalita' forza, durata 2-6 sett.
   Logistica (arancio)  — costi imprevisti, piccoli malus temporanei
   Forma/Mentale (viola)— morale cap relativo al valore attuale, durata variabile
   Positivi (verde)     — bonus rari: forma straordinaria, attenzione mediatica
   Colore (grigio)      — eventi narrativi senza effetto gameplay
+```
 
 COME FUNZIONANO:
+```
   - Appaiono come schermata overlay a tutto schermo al momento dell'evento.
   - Gli effetti attivi sono visibili nel riepilogo settimanale (riga colorata)
     e nel pannello analisi pre-match.
   - Non piu' di 2 eventi attivi contemporaneamente, di categorie diverse.
   - Ogni categoria ha un periodo di quiete variabile dopo uno scatto.
+```
 
 STAFF E EVENTI:
+```
   - Fisioterapista: riduce la durata degli infortuni fisici.
   - Mental Coach: riduce la durata delle crisi mentali/forma.
   - Durante un evento grave, le scadenze sponsor vengono congelate.
+```
 
 TICKER IN HEADER:
+```
   Il banner scorrevole in alto mostra gli ultimi eventi e informazioni
   contestuali sulla carriera: trend ranking, punti da difendere,
   tornei importanti in avvicino, milestone raggiunte e molto altro.
+```
 
-═══════════════════════════════════════════════════════════
-SALVATAGGIO E RIPRISTINO
-═══════════════════════════════════════════════════════════
+## SALVATAGGIO E RIPRISTINO
 
 Il gioco si salva automaticamente nel browser a ogni settimana.
 Per portare la partita su un altro dispositivo:
+```
   Profilo → "Esporta salvataggio" → scarica il file .json
   Sul nuovo dispositivo: schermata iniziale → "Importa salvataggio"
   (disponibile sia con save esistente che senza)
+```
 
-═══════════════════════════════════════════════════════════
-CONSIGLI PER INIZIARE
-═══════════════════════════════════════════════════════════
+## CONSIGLI PER INIZIARE
 
-· Il budget dipende dall'eta' scelta: da 1.800€ (15 anni) a 5.000€ (19 anni).
+- Il budget dipende dall'eta' scelta: da 1.800€ (15 anni) a 5.000€ (19 anni).
+```
   Il costo di vita e' 55/sett fuori classifica. Lo sponsor e' quasi necessario
   per sopravvivere al primo anno, specie se parti a 15 anni.
+```
 
-· Lo sponsor a 15 anni (0 pts) propone obiettivi bassissimi: anche 8-15 pts
+- Lo sponsor a 15 anni (0 pts) propone obiettivi bassissimi: anche 8-15 pts
+```
   bastano per il Cauto. E' calibrato sulla tua situazione reale, non su rank fissi.
+```
 
-· Considera subito uno sponsor: apri la schermata e valuta le offerte.
+- Considera subito uno sponsor: apri la schermata e valuta le offerte.
+```
   Il Cauto e' sempre il piu' sicuro per il primo contratto.
+```
 
-· Il costo del Challenger B locale e' 269 euro totali. Il T1 paga 300
+- Il costo del Challenger B locale e' 269 euro totali. Il T1 paga 300
+```
   (copre il 111%) — gia' in attivo. Ogni zona ha Challenger ogni 1-2 settimane.
+```
 
-· Il ciclo 4 allenamenti + 1 riposo e' il piu' efficiente.
+- Il ciclo 4 allenamenti + 1 riposo e' il piu' efficiente.
 
-· Nei Challenger i punti ATP contano davvero solo da SF in su.
+- Nei Challenger i punti ATP contano davvero solo da SF in su.
+```
   Non scoraggiarti se vinci T1 e Ottavi senza scalare il ranking —
   e' normale. La semifinale e' il vero spartiacque.
+```
 
-· Quando arrivi intorno a rank #370 inizia a guardare i Challenger A:
+- Quando arrivi intorno a rank #370 inizia a guardare i Challenger A:
+```
   premi quasi tripli rispetto al Challenger B.
+```
 
-· Nella fascia 330-370 puoi scegliere tra Challenger A e Challenger B.
+- Nella fascia 330-370 puoi scegliere tra Challenger A e Challenger B.
+```
   ChalA ha montepremi piu' alti ma draw piu' difficili.
+```
 
-· Se parti a 15 anni (0 pts), i primi tornei saranno tutti Challenger B.
+- Se parti a 15 anni (0 pts), i primi tornei saranno tutti Challenger B.
+```
   Accumula almeno 55 pts prima di tentare i Challenger A.
+```
 
-· Non assumere staff finche' non hai 8-10 settimane di costi totali in riserva.
+- Non assumere staff finche' non hai 8-10 settimane di costi totali in riserva.
 
-· Specializzati su 3-4 stat. La crescita e' graduale — pianifica su mesi.
+- Specializzati su 3-4 stat. La crescita e' graduale — pianifica su mesi.
 
-· Il fisioterapista e' il primo staff da considerare se giochi spesso lontano.
+- Il fisioterapista e' il primo staff da considerare se giochi spesso lontano.
+```
   Riduce il jet lag intercontinentale fino al 75% al livello Elite.
+```
 
-· Dentro un torneo non preoccuparti della fatica: ogni vittoria ti restituisce
+- Dentro un torneo non preoccuparti della fatica: ogni vittoria ti restituisce
+```
   automaticamente il 5% prima del match successivo.
+```
 
-· Tieni d'occhio la notifica "punti in scadenza" nell'anno 2.
+- Tieni d'occhio la notifica "punti in scadenza" nell'anno 2.
+```
   Il calendario mostra anche quanti punti devi difendere nelle prossime settimane.
+```
 
-· Lo Sparring Partner si sblocca a rank #250: stat automatiche ogni settimana.
+- Lo Sparring Partner si sblocca a rank #250: stat automatiche ogni settimana.
 
-· Durante la pausa invernale (sett. 42-51) hai solo 3 slot a settimana.
+- Durante la pausa invernale (sett. 42-51) hai solo 3 slot a settimana.
+```
   Consiglio: 2 allenamenti + 1 riposo per arrivare riposato alla nuova stagione.
+```
 
-· Dal terzo anno aspettati eventi imprevisti — fanno parte del gioco.
+- Dal terzo anno aspettati eventi imprevisti — fanno parte del gioco.
+```
   Il fisioterapista e il mental coach ne riducono la durata.
+```
 
-· Usa la tabella "Soglie accesso tornei" nel calendario per pianificare:
+- Usa la tabella "Soglie accesso tornei" nel calendario per pianificare:
+```
   se il tuo rank sta salendo, vedi in anticipo quando perderai l'accesso
   all'ATP250 (rank 60). Se sta scendendo, sai quando tornerai a poterlo giocare.
+```
 
-· In modalita' Leggenda, gli avversari non cambieranno mai — potrai
+- In modalita' Leggenda, gli avversari non cambieranno mai — potrai
+```
   confrontarti con gli stessi top player per tutta la carriera.
   In modalita' Classica, il circuito si rinnova: dopo anni di carriera
   incontrerai nuove generazioni di giocatori.
+```
