@@ -1,14 +1,14 @@
+// Debug rapido: top-5 del ranking NPC anno per anno (10 anni, seed fisso).
+// Uso: node tools/sim_debug_top5.js
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const REPO = process.env.REPO_DIR || '/home/user/TennisManager';
+const REPO = process.env.REPO_DIR || path.join(__dirname, '..');
 global.window = global;
 global.React = { useState: () => {}, useEffect: () => {}, useRef: () => {} };
-require(path.join(REPO, 'npc_system.js'));
-const lines = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8').split('\n');
-const iStart = lines.findIndex(l => l.includes('type="text/babel"'));
-const iEnd = lines.findIndex(l => l.startsWith('function stripBrackets'));
-const src = lines.slice(iStart + 1, iEnd).join('\n');
+require(path.join(REPO, 'js/npc_system.js'));
+const src = fs.readFileSync(path.join(REPO, 'js/game_data.js'), 'utf8') + '\n' +
+            fs.readFileSync(path.join(REPO, 'js/engine.js'), 'utf8');
 function mulberry32(a){return function(){a|=0;a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;};}
 global.__mkRng = mulberry32;
 const EXP = `
