@@ -18,11 +18,14 @@
 ## DESCRIZIONE DEL PROGETTO
 
 Gioco browser (HTML + React inline + Babel) di gestione carriera tennistica ATP.
-Nessun server, nessuna dipendenza esterna tranne CDN React/Babel.
-Salvataggio: localStorage (chiave "atp_career_v3").
+Nessun server proprio, nessuna dipendenza esterna tranne CDN React/Babel e
+l'API REST di Supabase per i salvataggi.
+Salvataggio: SOLO cloud su Supabase, 5 slot nominabili (vedi js/cloud_saves.js
+e architettura.md). Nessun salvataggio locale.
 File attivi (struttura completa in [CLAUDE.md](../CLAUDE.md)):
 ```
   • index.html        — UI React (JSX) + bootstrap
+  • js/cloud_saves.js — salvataggio cloud Supabase (5 slot, REST via fetch)
   • js/game_data.js   — dati di gioco (tornei, punti, premi, sponsor, staff…)
   • js/engine.js      — motore di simulazione (buildWorld, simWeek, tabelloni…)
   • js/npc_system.js  — sistema NPC (archetypes, lifecycle, talent, career phase,
@@ -417,6 +420,31 @@ MORALE — Sistema V3:
 ## MODIFICHE — CRONOLOGIA RECENTE
 
 [sess.1-47: vedi versione precedente note_progetto.txt]
+
+--- SESS.54 ---
+- SALVATAGGIO CLOUD SU SUPABASE (sostituisce localStorage, rimosso del tutto):
+  nuovo js/cloud_saves.js (client REST PostgREST via fetch, nessuna libreria),
+  progetto Supabase "TennisManager" (tslpnxjlilankbncliqx, eu-west-1), tabella
+  public.saves con 5 slot (s1..s5): name, payload jsonb (state con stripBrackets),
+  player_name, player_age, player_rank, game_year, game_week, updated_at
+  (trigger moddatetime). RLS con policy anon-all (pattern OrionEmpires).
+- UI: schermata iniziale con lista dei 5 slot (nome save + giocatore, età, N° rank,
+  anno/settimana, data) con carica/elimina; SlotPickerModal per scelta slot+nome
+  a nuova carriera, import file e "salva su altro slot". Sovrascrittura di uno
+  slot = nome mantenuto (precompilato, modificabile).
+- AUTOSAVE: useEffect di GameScreen serializza in cloudPayloadRef e salva sullo
+  slot attivo con debounce 1.5s; flush immediato su visibilitychange/pagehide
+  (unica rete di sicurezza senza localStorage). cloudDisabledRef blocca i
+  ri-salvataggi dopo l'eliminazione (evita resurrezione del save da parte del
+  flush durante il reload). Card Profilo: stato sync, Salva ora, Rinomina,
+  Salva su altro slot, export/import file di backup, Azzera carriera.
+- RIMOSSI: saveL/loadL/delL da engine.js, chiave SK "atp_career_v3" da
+  game_data.js (diagnostica di avvio ora controlla STAFF_LEVELS e cloud_saves).
+- NOTA RETE: senza connessione il gioco mostra errore + Riprova alla schermata
+  slot; l'export/import .json resta come backup offline.
+- Verifica: node --check ok, sim_harness invariato (deterministico), smoke test
+  Playwright con Supabase mockato (lista slot, load, autosave con nome mantenuto,
+  salva su altro slot, nuova carriera → slot picker → partita).
 
 --- SESS.53 ---
 - DIAGNOSTICA DI AVVIO in index.html: dopo la riorganizzazione (sess.52) il gioco

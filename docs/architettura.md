@@ -8,10 +8,13 @@ lo storico tecnico (bug risolti, decisioni) in [note_progetto.md](note_progetto.
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│ index.html (~6.950 righe)                                  │
+│ index.html (~7.100 righe)                                  │
 │   CSS · UI React in <script type="text/babel"> · bootstrap │
 └──────────────────────────┬─────────────────────────────────┘
                            │ usa (globali di script classici)
+┌──────────────────────────▼─────────────────────────────────┐
+│ js/cloud_saves.js (~110) — client REST Supabase (5 slot)   │
+└──────────────────────────┬─────────────────────────────────┘
 ┌──────────────────────────▼─────────────────────────────────┐
 │ js/engine.js (~1.340) — motore di simulazione              │
 └──────────────────────────┬─────────────────────────────────┘
@@ -44,7 +47,24 @@ nessun build step (vincolo `file://`, vedi CLAUDE.md).
 | Allenamento | `TRAIN` (slot e gain), `ARCH` (archetipi giocatore), `BONUS_CARDS` (carte match) |
 | Alias NPC | `NPC_ARCHETYPES` ecc. destrutturati da `window.NPC_SYSTEM` |
 
-Chiave di salvataggio: `SK = "atp_career_v3"` (definita qui).
+## js/cloud_saves.js — persistenza cloud (Supabase)
+
+Unica persistenza del gioco: 5 slot su Supabase (progetto "TennisManager",
+`tslpnxjlilankbncliqx`, tabella `public.saves`, 1 riga per slot `s1`..`s5`).
+Nessun salvataggio locale (localStorage rimosso). Chiamate REST PostgREST
+via `fetch`, nessuna libreria esterna; script classico senza JSX.
+
+| Simbolo | Ruolo |
+|---|---|
+| `CLOUD_URL`, `CLOUD_KEY`, `CLOUD_SLOTS` | Config progetto Supabase + lista slot |
+| `cloudListSaves()` | Mappa `{slot→metadati}` (name, player_name, player_age, player_rank, game_year, game_week, updated_at) — non scarica i payload |
+| `cloudLoadSave(slot)` | `{payload,name}` o `null` se vuoto |
+| `cloudSaveGame(slot,name,state)` | Upsert: payload = state con `stripBrackets`; il nome va sempre ripassato (sovrascrittura = nome mantenuto) |
+| `cloudDeleteSave(slot)` | Svuota lo slot |
+
+Lato DB: RLS attiva con policy permissiva per il ruolo `anon` (gioco personale
+a giocatore singolo, stesso pattern del progetto OrionEmpires); `updated_at`
+aggiornato da trigger `moddatetime` server-side.
 
 ## js/engine.js — motore di simulazione
 
@@ -56,7 +76,7 @@ Chiave di salvataggio: `SK = "atp_career_v3"` (definita qui).
 | Mondo NPC | `buildWorld` (init 500 NPC), `getATPPlayer`, `npcEffectiveStat`, `getNPCCareerBounds`, `generateReplacementNPC`, `genNameForRank`/`genNameFromSeed` |
 | Tabelloni | `buildSeededDraw`, `buildEligPool`, `simNPCBracket` (KO), `simNPCBracketRR` + famiglia `atpFinals*` (round robin), `buildLiveBracket(RR)`, `advanceLiveBracket(RR)` |
 | Avanzamento | `simWeek(weekNum,world,yearNum,extraOpts)` — cuore del gioco: aging/ritiri (Phase 0), drift+growth livelli (Phase 1), rinormalizzazione pool (Phase 1b), tornei NPC, punti rolling. `extraOpts.legendMode` congela gli NPC |
-| Persistenza | `saveL`/`loadL`/`delL` (localStorage), `exportSave`/`importSave` (file .json), `stripBrackets`, `migrateWorldPool`, `shiftNpcRanksForPlayer` (anti-collisione rank giocatore/NPC) |
+| Persistenza | `exportSave`/`importSave` (file .json di backup), `stripBrackets`, `migrateWorldPool`, `shiftNpcRanksForPlayer` (anti-collisione rank giocatore/NPC). Il salvataggio vero è in `js/cloud_saves.js` |
 
 ## js/npc_system.js — window.NPC_SYSTEM
 
@@ -77,7 +97,7 @@ in sezioni marcate `SEZIONE N` (cercare `SEZIONE` nel file):
 | 2 · TORNEO | `BracketViewer`, `RecoveryPackPanel`, `BracketTransition`, `DrawScreen`, `BracketUpdateScreen`, `MatchScreen` |
 | 3 · MONDO E VIAGGI | `FullCalendarViewer`, `ZONE_FULLNAME`/`ZONE_FLAGS`, `WorldMap`, `CityTransitionHUD` |
 | 4 · GESTIONE | `WinterBlockScreen`, `TrainingScreen`, `SponsorScreen`, `NewsFlashScreen`, `StaffScreen` |
-| 5 · CREAZIONE PERSONAGGIO | `CharCreation` |
+| 5 · CREAZIONE PERSONAGGIO | `SlotPickerModal` (scelta slot cloud + nome), `CharCreation` (con lista 5 slot cloud) |
 | 6 · GAME SCREEN | `CalendarView`, `RankingView`, `HistoryView`, `ProfileView`, `GameScreen` |
 | 7 · APP | `App`, bootstrap `ReactDOM.createRoot` |
 
@@ -86,7 +106,10 @@ in sezioni marcate `SEZIONE N` (cercare `SEZIONE` nel file):
 `GameScreen` possiede TUTTO lo stato di gioco (~46 useState: week/year/player/
 world/brackets/staff/morale/sponsor/eventi/…) e le funzioni di avanzamento
 (`advanceWeek`, `handleMatchDone`, `enterTournament`, hire/fire staff, ecc.).
-Un `useEffect` persiste lo stato in localStorage a ogni cambiamento.
+Un `useEffect` serializza lo stato a ogni cambiamento e lo salva sul cloud
+(slot attivo, debounce 1.5s, nome mantenuto); un handler su
+`visibilitychange`/`pagehide` fa il flush del salvataggio in sospeso quando
+l'app va in background.
 
 Il render è un router a due livelli:
 
@@ -113,7 +136,7 @@ Regola: MAI hook dentro le viste-figlie o dentro IIFE — lo stato vive in GameS
 ## Strutture dati principali
 
 ```
-state (salvato in localStorage "atp_career_v3")
+state (payload jsonb dello slot cloud, tabella public.saves su Supabase)
 ├─ week, year, weekDone, trainCount, winterDone, morale
 ├─ gameMode: "classic" | "legend"
 ├─ player { name, nationality, archetype, stats{7}, rank, atpPoints, money,
@@ -140,7 +163,7 @@ advanceWeek (GameScreen)
 │   ├─ Phase 1b: rinormalizzazione livelli a NPC_FIXED_POOL
 │   └─ tornei NPC della settimana → punti rolling 52 settimane
 ├─ shiftNpcRanksForPlayer (anti-collisione rank)
-└─ setState → useEffect → saveL
+└─ setState → useEffect → cloudSaveGame (debounce 1.5s, slot attivo)
 ```
 
 ## Dove intervenire, per tipo di modifica
@@ -154,3 +177,4 @@ advanceWeek (GameScreen)
 | Nuova vista bottom-nav | Sezione 6, pattern viste estratte (sopra) |
 | Economia (staff, sponsor, investimenti) | `js/game_data.js` + handler in GameScreen |
 | Salvataggio (nuovi campi) | Aggiungere allo state + gestire il default per i vecchi save (vedi `migrateWorldPool`) |
+| Salvataggio cloud (slot, metadati) | `js/cloud_saves.js` + tabella `public.saves` su Supabase (nuove colonne ⇒ migrazione SQL) |
