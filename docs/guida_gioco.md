@@ -500,12 +500,23 @@ TICKER IN HEADER:
 
 ## SALVATAGGIO E RIPRISTINO
 
-Il gioco si salva automaticamente nel browser a ogni settimana.
-Per portare la partita su un altro dispositivo:
+Il gioco si salva automaticamente SUL CLOUD (Supabase) a ogni azione: servono
+quindi una connessione a internet e nessun altro accorgimento. Hai 5 slot di
+salvataggio, ognuno con un nome a tua scelta.
+
+- Schermata iniziale: la lista dei 5 slot mostra nome del salvataggio,
+  giocatore, età, posizione in classifica, anno/settimana e data.
+  Tocca uno slot per riprendere la partita, il cestino per eliminarlo.
+- Nuova carriera: dopo la creazione scegli lo slot e il nome del salvataggio.
+  Se sovrascrivi uno slot occupato, il nome esistente viene mantenuto
+  (puoi comunque cambiarlo prima di confermare).
+- Profilo → card "Salvataggio cloud": Salva ora, Rinomina, Salva su un altro
+  slot, Azzera carriera. Giocando su più dispositivi vale l'ultimo che salva.
+
+Backup e trasferimento manuale (facoltativo, senza cloud):
 ```
-  Profilo → "Esporta salvataggio" → scarica il file .json
-  Sul nuovo dispositivo: schermata iniziale → "Importa salvataggio"
-  (disponibile sia con save esistente che senza)
+  Profilo → "Esporta file di backup" → scarica il file .json
+  Schermata iniziale o Profilo → "Importa file di backup"
 ```
 
 ## CONSIGLI PER INIZIARE

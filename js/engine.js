@@ -1249,8 +1249,8 @@ function stripBrackets(brackets){
   });
   return out;
 }
-function saveL(s){try{const sv={...s,brackets:stripBrackets(s.brackets)};localStorage.setItem(SK,JSON.stringify(sv));}catch(e){}}
-function loadL(){try{const r=localStorage.getItem(SK);return r?JSON.parse(r):null;}catch(e){return null;}}
+// Persistenza: SOLO su cloud (Supabase, vedi js/cloud_saves.js).
+// Le vecchie saveL/loadL/delL su localStorage sono state rimosse.
 
 // ── SHIFT NPC RANKS — evita collisione giocatore-NPC ─────────────────
 // Il giocatore si INSERISCE nella classifica unificata. Gli NPC a quella
@@ -1325,7 +1325,6 @@ function migrateWorldPool(world){
   });
   return migrated;
 }
-function delL(){localStorage.removeItem(SK);}
 function exportSave(state){
   const blob=new Blob([JSON.stringify({...state,brackets:stripBrackets(state.brackets)})],{type:"application/json"});
   const url=URL.createObjectURL(blob);const a=document.createElement("a");

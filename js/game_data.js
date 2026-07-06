@@ -1007,7 +1007,6 @@ function getMatchPts(type, fromEnd, won){
   const idx=Math.min(fromEnd+(won?0:1),maxIdx);
   const v=t[idx]; return (v===null||v===undefined)?( t[6]===null||t[6]===undefined?0:t[6] ):v;
 }
-const SK = "atp_career_v3";
 
 const STAFF_LEVELS={
   coach:{name:"Coach Tecnico",icon:"🎓",levels:[

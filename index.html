@@ -27,6 +27,7 @@ window.addEventListener("error", function(e){
 <script src="js/npc_system.js"></script>
 <script src="js/game_data.js"></script>
 <script src="js/engine.js"></script>
+<script src="js/cloud_saves.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #fff; }
@@ -3146,7 +3147,80 @@ function StaffScreen({player,staff,year,week,onHire,onFire,onBack,onSponsor,onIn
 // ═══════════════════════════════════════════════════
 // CHARACTER CREATION
 // ═══════════════════════════════════════════════════
-function CharCreation({onStart,hasSave,onResume,onImport}){
+// ── SLOT PICKER — scelta slot cloud + nome (nuova carriera, import, salva su altro slot) ──
+// Sovrascrittura: selezionando uno slot occupato il campo nome viene precompilato
+// col nome esistente (mantenimento del nome), modificabile prima di confermare.
+function SlotPickerModal({title,defaultName,onConfirm,onCancel}){
+  const[slots,setSlots]=useState(null);
+  const[err,setErr]=useState(null);
+  const[sel,setSel]=useState(null);
+  const[nm,setNm]=useState(defaultName||"");
+  const[busy,setBusy]=useState(false);
+  const editedRef=React.useRef(false); // l'utente ha digitato un nome a mano
+  useEffect(()=>{
+    let on=true;
+    cloudListSaves().then(m=>{if(on)setSlots(m);}).catch(e=>{if(on)setErr(e.message||String(e));});
+    return()=>{on=false;};
+  },[]);
+  function pick(sl){
+    setSel(sl);
+    if(editedRef.current)return;
+    const m=slots&&slots[sl];
+    setNm(m&&m.name?m.name:(defaultName||""));
+  }
+  async function confirm(){
+    if(!sel||!nm.trim()||busy)return;
+    setBusy(true);setErr(null);
+    try{await onConfirm(sel,nm.trim());}
+    catch(e){setErr("Salvataggio fallito: "+(e.message||e));setBusy(false);}
+  }
+  const canSave=sel&&nm.trim()&&slots&&!busy;
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(2,6,23,0.85)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div style={{background:"#1e293b",border:"1px solid #334155",borderRadius:16,padding:18,width:"100%",maxWidth:440,maxHeight:"90vh",overflowY:"auto"}}>
+        <div style={{fontSize:16,fontWeight:900,color:"#e2e8f0",marginBottom:12}}>☁️ {title||"Scegli lo slot"}</div>
+        {err&&<div style={{background:"rgba(239,68,68,0.12)",border:"1px solid #ef444455",color:"#fca5a5",borderRadius:8,padding:"8px 10px",fontSize:12,marginBottom:10}}>⚠️ {err}</div>}
+        {!slots&&!err&&<div style={{color:"#64748b",fontSize:13,padding:"14px 0",textAlign:"center"}}>Connessione al cloud…</div>}
+        {slots&&CLOUD_SLOTS.map((sl,i)=>{
+          const m=slots[sl];const isSel=sel===sl;
+          return(
+            <div key={sl} onClick={()=>pick(sl)}
+              style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:10,marginBottom:6,cursor:"pointer",
+                border:`2px solid ${isSel?"#f59e0b":"#0f172a"}`,background:isSel?"rgba(245,158,11,0.08)":"#0f172a"}}>
+              <div style={{fontSize:15,fontWeight:900,color:isSel?"#f59e0b":"#64748b",width:22,textAlign:"center"}}>{i+1}</div>
+              {m?(
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13,fontWeight:800,color:"#e2e8f0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name}</div>
+                  <div style={{fontSize:11,color:"#94a3b8"}}>👤 {m.player_name} · {m.player_age} anni · N°{m.player_rank||"—"} · Anno {m.game_year}</div>
+                  <div style={{fontSize:10,color:"#ef4444",fontWeight:700,marginTop:2}}>⚠ Verrà sovrascritto</div>
+                </div>
+              ):(
+                <div style={{flex:1,fontSize:13,color:"#475569",fontStyle:"italic"}}>Slot vuoto</div>
+              )}
+            </div>
+          );
+        })}
+        {slots&&(
+          <div style={{marginTop:10}}>
+            <div style={{fontSize:11,color:"#94a3b8",fontWeight:700,marginBottom:5,letterSpacing:0.5}}>NOME DEL SALVATAGGIO</div>
+            <input value={nm} onChange={e=>{setNm(e.target.value);editedRef.current=true;}} maxLength={60} placeholder="Es. La mia scalata"
+              style={{width:"100%",boxSizing:"border-box",background:"#0f172a",border:"1px solid #334155",borderRadius:8,padding:"9px 12px",color:"#fff",fontSize:14,outline:"none"}}/>
+          </div>
+        )}
+        <div style={{display:"flex",gap:8,marginTop:14}}>
+          <button onClick={onCancel} disabled={busy}
+            style={{flex:1,background:"#334155",border:"none",borderRadius:8,padding:"11px 0",color:"#cbd5e1",fontWeight:700,fontSize:13,cursor:"pointer"}}>Annulla</button>
+          <button onClick={confirm} disabled={!canSave}
+            style={{flex:2,background:canSave?"linear-gradient(90deg,#f59e0b,#ef4444)":"#33415588",border:"none",borderRadius:8,padding:"11px 0",color:"#fff",fontWeight:900,fontSize:14,cursor:canSave?"pointer":"default"}}>
+            {busy?"⏳ Salvataggio…":"💾 Salva"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CharCreation({onStart,onImport,slots,slotsError,busySlot,onLoadSlot,onDeleteSlot,onRetrySlots}){
   const importRef=React.useRef(null);
   const nameRef=React.useRef(null);
   const[step,setStep]=useState("arch");
@@ -3231,12 +3305,44 @@ function CharCreation({onStart,hasSave,onResume,onImport}){
             style={{width:"100%",background:"linear-gradient(90deg,#f59e0b,#ef4444)",border:"none",borderRadius:10,padding:"14px 0",color:"#fff",fontWeight:900,fontSize:16,cursor:"pointer",letterSpacing:1,boxShadow:"0 4px 16px rgba(245,158,11,0.3)"}}>
             🎾 Nuova Carriera
           </button>
-          {hasSave&&(
-            <button onClick={onResume}
-              style={{width:"100%",background:"#10b981",border:"none",borderRadius:8,padding:"11px 0",color:"#fff",fontWeight:"bold",cursor:"pointer",fontSize:14}}>
-              ▶ Riprendi partita corrente
-            </button>
-          )}
+          {/* ── SLOT CLOUD: 5 salvataggi su Supabase ── */}
+          <div style={{borderTop:"1px solid #1e293b",paddingTop:10}}>
+            <div style={{fontSize:11,color:"#94a3b8",fontWeight:800,letterSpacing:1,marginBottom:8}}>☁️ SALVATAGGI CLOUD</div>
+            {!slots&&!slotsError&&<div style={{color:"#64748b",fontSize:12,textAlign:"center",padding:"8px 0"}}>⏳ Connessione al cloud…</div>}
+            {slotsError&&(
+              <div style={{background:"rgba(239,68,68,0.10)",border:"1px solid #ef444444",borderRadius:8,padding:"8px 10px",marginBottom:6}}>
+                <div style={{color:"#fca5a5",fontSize:11,marginBottom:6}}>⚠️ {slotsError}</div>
+                <button onClick={onRetrySlots}
+                  style={{width:"100%",background:"#334155",border:"none",borderRadius:6,padding:"7px 0",color:"#e2e8f0",fontWeight:700,fontSize:12,cursor:"pointer"}}>🔄 Riprova</button>
+              </div>
+            )}
+            {slots&&CLOUD_SLOTS.map((sl,i)=>{
+              const m=slots[sl];
+              if(!m)return(
+                <div key={sl} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:8,marginBottom:5,background:"#0f172a55",border:"1px dashed #1e293b"}}>
+                  <span style={{fontSize:12,fontWeight:900,color:"#334155",width:18,textAlign:"center"}}>{i+1}</span>
+                  <span style={{fontSize:12,color:"#334155",fontStyle:"italic"}}>Slot vuoto</span>
+                </div>
+              );
+              const dt=m.updated_at?new Date(m.updated_at):null;
+              const when=dt?dt.toLocaleDateString("it-IT",{day:"2-digit",month:"2-digit",year:"2-digit"})+" "+dt.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}):"";
+              const busy=busySlot===sl;
+              return(
+                <div key={sl} onClick={()=>{if(!busySlot)onLoadSlot(sl);}}
+                  style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:8,marginBottom:5,background:"#0f172a",border:"1px solid #334155",cursor:busySlot?"default":"pointer",opacity:busySlot&&!busy?0.5:1}}>
+                  <span style={{fontSize:12,fontWeight:900,color:"#f59e0b",width:18,textAlign:"center"}}>{i+1}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:800,color:"#e2e8f0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{busy?"⏳ Caricamento…":m.name}</div>
+                    <div style={{fontSize:10.5,color:"#94a3b8"}}>👤 {m.player_name} · {m.player_age} anni · N°{m.player_rank||"—"}</div>
+                    <div style={{fontSize:10,color:"#475569"}}>Anno {m.game_year} · Sett. {m.game_week}{when?" · "+when:""}</div>
+                  </div>
+                  <span style={{color:"#10b981",fontSize:15,fontWeight:900}}>▶</span>
+                  <button onClick={e=>{e.stopPropagation();if(window.confirm(`Eliminare definitivamente "${m.name}"?`))onDeleteSlot(sl);}}
+                    style={{background:"none",border:"none",color:"#64748b",fontSize:14,cursor:"pointer",padding:"2px 4px"}}>🗑</button>
+                </div>
+              );
+            })}
+          </div>
           <button onClick={()=>importRef.current?.click()}
             style={{width:"100%",background:"rgba(59,130,246,0.12)",border:"1px solid #3b82f633",borderRadius:8,padding:"10px 0",color:"#3b82f6",fontWeight:700,fontSize:13,cursor:"pointer"}}>
             📥 Importa salvataggio
@@ -4129,7 +4235,7 @@ function HistoryView(props){
 }
 
 function ProfileView(props){
-  const{activeEvents,activeTour,brackets,careerLog,catCooldown,consecutiveLosses,consecutiveTournaments,fileRef,gs,morale,notify,player,setPlayer,setShowRicalib,showRicalib,sponsor,staff,tourRound,trainCount,week,weekDone,winterDone,world,year}=props;
+  const{activeEvents,activeTour,brackets,careerLog,catCooldown,cloudName,cloudSaveNow,cloudSlot,cloudStatus,consecutiveLosses,consecutiveTournaments,deleteCloudSave,fileRef,gs,morale,notify,player,renameSave,setPlayer,setShowRicalib,setSlotPicker,showRicalib,sponsor,staff,tourRound,trainCount,week,weekDone,winterDone,world,year}=props;
           const rh=player.rankHistory||[];
           const sparkW=300,sparkH=120;
           // Includi rank corrente come punto live
@@ -4502,13 +4608,25 @@ function ProfileView(props){
           </Card>
 
           <Card>
-            <STitle>💾 SALVATAGGIO</STitle>
-            <div style={{fontSize:12,color:"#94a3b8",marginBottom:12}}>Salvataggio automatico nel browser. Usa Esporta per portare la partita su altri dispositivi.</div>
+            <STitle>☁️ SALVATAGGIO CLOUD</STitle>
+            <div style={{fontSize:12,color:"#94a3b8",marginBottom:4}}>
+              Slot {cloudSlot?cloudSlot.slice(1):"—"} · <span style={{color:"#e2e8f0",fontWeight:700}}>"{cloudName}"</span>
+            </div>
+            <div style={{fontSize:11,color:"#64748b",marginBottom:8}}>Salvataggio automatico su cloud dopo ogni azione. Nessun dato salvato in locale.</div>
+            <div style={{fontSize:11,marginBottom:12,fontWeight:700,color:cloudStatus.state==="error"?"#fca5a5":cloudStatus.state==="saving"?"#f59e0b":"#10b981"}}>
+              {cloudStatus.state==="saving"?"⏳ Salvataggio in corso…"
+                :cloudStatus.state==="error"?"⚠️ Errore: "+(cloudStatus.msg||"salvataggio fallito")
+                :cloudStatus.at?"✅ Salvato alle "+cloudStatus.at.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})
+                :"☁️ In attesa del primo salvataggio"}
+            </div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              <button onClick={()=>{exportSave({week,year,player,atpWorld:world,brackets,staff,activeTour,tourRound,weekDone,trainCount,morale,sponsor,winterDone,careerLog,activeEvents,consecutiveTournaments,consecutiveLosses,catCooldown,gameMode:gs.gameMode||"classic"});notify("💾 File scaricato!","#10b981");}} style={{background:"#10b981",border:"none",borderRadius:8,padding:"10px 0",color:"#fff",fontWeight:"bold",cursor:"pointer",fontSize:14}}>📤 Esporta salvataggio</button>
-              <button onClick={()=>fileRef.current?.click()} style={{background:"#3b82f6",border:"none",borderRadius:8,padding:"10px 0",color:"#fff",fontWeight:"bold",cursor:"pointer",fontSize:14}}>📥 Importa salvataggio</button>
-              <input ref={fileRef} type="file" accept=".json" style={{display:"none"}} onChange={e=>{if(e.target.files[0])importSave(e.target.files[0],state=>{saveL(state);window.location.reload();});}}/>
-              <button onClick={()=>{if(window.confirm("Cancellare il salvataggio e ricominciare da zero?")){delL();window.location.reload();}}} style={{background:"#334155",border:"none",borderRadius:8,padding:"9px 0",color:"#94a3b8",cursor:"pointer",fontSize:13}}>🗑 Azzera carriera</button>
+              <button onClick={()=>{cloudSaveNow().then(()=>notify("☁️ Salvato su cloud!","#10b981")).catch(()=>notify("⚠️ Salvataggio fallito","#ef4444"));}} style={{background:"#10b981",border:"none",borderRadius:8,padding:"10px 0",color:"#fff",fontWeight:"bold",cursor:"pointer",fontSize:14}}>💾 Salva ora</button>
+              <button onClick={renameSave} style={{background:"#0ea5e9",border:"none",borderRadius:8,padding:"10px 0",color:"#fff",fontWeight:"bold",cursor:"pointer",fontSize:14}}>✏️ Rinomina salvataggio</button>
+              <button onClick={()=>setSlotPicker(true)} style={{background:"#8b5cf6",border:"none",borderRadius:8,padding:"10px 0",color:"#fff",fontWeight:"bold",cursor:"pointer",fontSize:14}}>📂 Salva su un altro slot</button>
+              <button onClick={()=>{exportSave({week,year,player,atpWorld:world,brackets,staff,activeTour,tourRound,weekDone,trainCount,morale,sponsor,winterDone,careerLog,activeEvents,consecutiveTournaments,consecutiveLosses,catCooldown,gameMode:gs.gameMode||"classic"});notify("💾 File scaricato!","#10b981");}} style={{background:"#3b82f6",border:"none",borderRadius:8,padding:"10px 0",color:"#fff",fontWeight:"bold",cursor:"pointer",fontSize:14}}>📤 Esporta file di backup</button>
+              <button onClick={()=>fileRef.current?.click()} style={{background:"#334155",border:"none",borderRadius:8,padding:"10px 0",color:"#e2e8f0",fontWeight:"bold",cursor:"pointer",fontSize:14}}>📥 Importa file di backup</button>
+              <input ref={fileRef} type="file" accept=".json" style={{display:"none"}} onChange={e=>{if(e.target.files[0])importSave(e.target.files[0],state=>{cloudSaveGame(cloudSlot,cloudName,state).then(()=>window.location.reload()).catch(err=>alert("Import fallito: "+(err.message||err)));});}}/>
+              <button onClick={deleteCloudSave} style={{background:"#334155",border:"none",borderRadius:8,padding:"9px 0",color:"#94a3b8",cursor:"pointer",fontSize:13}}>🗑 Azzera carriera</button>
             </div>
           </Card>
           </>
@@ -4662,8 +4780,53 @@ function RankingView(props){
 // ═══════════════════════════════════════════════════
 // GAME SCREEN
 // ═══════════════════════════════════════════════════
-function GameScreen({gs}){
+function GameScreen({gs,cloudSlot:initialCloudSlot,cloudName:initialCloudName}){
   const[week,setWeek]=useState(gs.week||1);
+  // ── CLOUD SAVE: slot attivo, nome (mantenuto a ogni sovrascrittura), stato sync ──
+  const[cloudSlot,setCloudSlot]=useState(initialCloudSlot||null);
+  const[cloudName,setCloudName]=useState(initialCloudName||"Salvataggio");
+  const[cloudStatus,setCloudStatus]=useState({state:"idle"});
+  const[slotPicker,setSlotPicker]=useState(false);
+  const cloudPayloadRef=React.useRef(null);  // ultimo state serializzabile
+  const cloudTimerRef=React.useRef(null);    // debounce autosave
+  const cloudPendingRef=React.useRef(false); // c'è un salvataggio in sospeso
+  const cloudDisabledRef=React.useRef(false);// true dopo eliminazione: blocca ri-salvataggi
+  function cloudSaveNow(slotOv,nameOv){
+    const st=cloudPayloadRef.current;
+    const slot=slotOv||cloudSlot;
+    const nm=nameOv!==undefined?nameOv:cloudName;
+    if(!st||!slot||cloudDisabledRef.current)return Promise.resolve();
+    clearTimeout(cloudTimerRef.current);
+    cloudPendingRef.current=false;
+    setCloudStatus({state:"saving"});
+    return cloudSaveGame(slot,nm,st)
+      .then(()=>{setCloudStatus({state:"ok",at:new Date()});})
+      .catch(e=>{setCloudStatus({state:"error",msg:e.message||String(e)});throw e;});
+  }
+  function renameSave(){
+    const v=window.prompt("Nuovo nome del salvataggio:",cloudName);
+    if(v===null)return;
+    const nm=v.trim();
+    if(!nm)return;
+    setCloudName(nm);
+    cloudSaveNow(undefined,nm).then(()=>notify("✏️ Salvataggio rinominato","#10b981")).catch(()=>{});
+  }
+  function deleteCloudSave(){
+    if(!window.confirm("Eliminare il salvataggio cloud e ricominciare da zero?"))return;
+    cloudDisabledRef.current=true;
+    clearTimeout(cloudTimerRef.current);
+    cloudDeleteSave(cloudSlot)
+      .then(()=>window.location.reload())
+      .catch(e=>{cloudDisabledRef.current=false;alert("Eliminazione fallita: "+(e.message||e));});
+  }
+  // Flush immediato del salvataggio in sospeso quando l'app va in background
+  // (chiusura tab, cambio app su iOS): senza localStorage è l'unica rete di sicurezza.
+  useEffect(()=>{
+    function onHide(){if(cloudPendingRef.current)cloudSaveNow().catch(()=>{});}
+    document.addEventListener("visibilitychange",onHide);
+    window.addEventListener("pagehide",onHide);
+    return()=>{document.removeEventListener("visibilitychange",onHide);window.removeEventListener("pagehide",onHide);};
+  });
   const[year,setYear]=useState(gs.year||1);
   const[player,setPlayer]=useState(gs.player);
   const[world,setWorld]=useState(()=>gs.atpWorld||buildWorld());
@@ -5386,8 +5549,15 @@ function GameScreen({gs}){
       yearsOut150:{...npcYearsOutside150},
       yearsOut250:{...npcYearsOutside250},
     };
-    saveL({week,year,player,atpWorld:world,brackets,staff,activeTour,tourRound,weekDone,trainCount,morale,sponsor,winterDone,careerLog,activeEvents,consecutiveTournaments,consecutiveLosses,catCooldown,gameMode:gs.gameMode||"classic",npcState});
-  },[week,year,player,world,activeTour,tourRound,weekDone,staff,trainCount,morale,sponsor,winterDone,careerLog,activeEvents,consecutiveTournaments,consecutiveLosses,catCooldown]);
+    cloudPayloadRef.current={week,year,player,atpWorld:world,brackets,staff,activeTour,tourRound,weekDone,trainCount,morale,sponsor,winterDone,careerLog,activeEvents,consecutiveTournaments,consecutiveLosses,catCooldown,gameMode:gs.gameMode||"classic",npcState};
+    // Autosave cloud con debounce: una raffica di mutazioni → una sola scrittura.
+    // Il nome dello slot viene sempre ripassato: sovrascrittura = nome mantenuto.
+    if(!cloudSlot||cloudDisabledRef.current)return;
+    clearTimeout(cloudTimerRef.current);
+    cloudPendingRef.current=true;
+    cloudTimerRef.current=setTimeout(()=>{cloudSaveNow().catch(()=>{});},1500);
+    return()=>clearTimeout(cloudTimerRef.current);
+  },[week,year,player,world,activeTour,tourRound,weekDone,staff,trainCount,morale,sponsor,winterDone,careerLog,activeEvents,consecutiveTournaments,consecutiveLosses,catCooldown,cloudSlot,cloudName]);
 
   // advanceWeek: exact one week, debt tracking, leveled staff
   function advanceWeek(updP, lastResult=null, moraleOverride=null, activeEvtsOverride=null, weekSkip=1){
@@ -6307,7 +6477,7 @@ function GameScreen({gs}){
           <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #1e293b"}}><span style={{color:"#94a3b8"}}>{c.i} {c.l}</span><strong>{c.v}</strong></div>
         ))}
       </div>
-      <button onClick={()=>{delL();window.location.reload();}} style={{background:"linear-gradient(90deg,#f59e0b,#ef4444)",border:"none",borderRadius:12,padding:"14px 40px",color:"#fff",fontWeight:"bold",fontSize:16,cursor:"pointer"}}>🔄 Nuova Carriera</button>
+      <button onClick={()=>{cloudDisabledRef.current=true;clearTimeout(cloudTimerRef.current);cloudDeleteSave(cloudSlot).then(()=>window.location.reload()).catch(()=>window.location.reload());}} style={{background:"linear-gradient(90deg,#f59e0b,#ef4444)",border:"none",borderRadius:12,padding:"14px 40px",color:"#fff",fontWeight:"bold",fontSize:16,cursor:"pointer"}}>🔄 Nuova Carriera</button>
     </div>
   );
   // ── FLIGHT SCREEN — overlay totale volo ──
@@ -6914,9 +7084,12 @@ function GameScreen({gs}){
         {view==="history"&&<HistoryView {...{histTab,openTournKeys,player,setHistTab,setOpenTournKeys,week,year}}/>}
 
         {/* ── PROFILO ── */}
-        {view==="profile"&&<ProfileView {...{activeEvents,activeTour,brackets,careerLog,catCooldown,consecutiveLosses,consecutiveTournaments,fileRef,gs,morale,notify,player,setPlayer,setShowRicalib,showRicalib,sponsor,staff,tourRound,trainCount,week,weekDone,winterDone,world,year}}/>}
+        {view==="profile"&&<ProfileView {...{activeEvents,activeTour,brackets,careerLog,catCooldown,cloudName,cloudSaveNow,cloudSlot,cloudStatus,consecutiveLosses,consecutiveTournaments,deleteCloudSave,fileRef,gs,morale,notify,player,renameSave,setPlayer,setShowRicalib,setSlotPicker,showRicalib,sponsor,staff,tourRound,trainCount,week,weekDone,winterDone,world,year}}/>}
 
       </div>
+      {slotPicker&&<SlotPickerModal title="Salva su un altro slot" defaultName={cloudName}
+        onCancel={()=>setSlotPicker(false)}
+        onConfirm={async(slot,nm)=>{await cloudSaveNow(slot,nm);setCloudSlot(slot);setCloudName(nm);setSlotPicker(false);notify("☁️ Salvato su Slot "+slot.slice(1),"#10b981");}}/>}
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:"var(--app-max-w)",background:"#1e293b",borderTop:"1px solid #334155",display:"flex",zIndex:50}}>
         {[["cal","📅","Calendario"],["ranking","🏆","Classifica"],["history","📋","Storico"],["profile","👤","Profilo"]].map(([id,ico,lbl])=>(
           <button key={id} onClick={()=>setView(id)} style={{flex:1,background:"none",border:"none",padding:"9px 0 8px",color:view===id?"#f59e0b":"#94a3b8",fontSize:13,cursor:"pointer",fontWeight:view===id?700:500}}>
@@ -6938,8 +7111,25 @@ function GameScreen({gs}){
 function App(){
   const[screen,setScreen]=useState("boot");
   const[gs,setGs]=useState(null);
-  const[hasSave,setHasSave]=useState(false);
-  useEffect(()=>{const s=loadL();setHasSave(!!s);setScreen("creation");},[]);
+  const[slots,setSlots]=useState(null);           // mappa slot→metadati cloud (null = in caricamento)
+  const[slotsError,setSlotsError]=useState(null);
+  const[busySlot,setBusySlot]=useState(null);     // slot di cui si sta scaricando il payload
+  const[pendingNew,setPendingNew]=useState(null); // {state,defaultName} in attesa di scelta slot+nome
+  const[cloudSlot,setCloudSlot]=useState(null);   // slot cloud attivo della partita in corso
+  const[saveName,setSaveName]=useState("");
+  function refreshSlots(){
+    setSlotsError(null);setSlots(null);
+    cloudListSaves()
+      .then(m=>{setSlots(m);setScreen(s=>s==="boot"?"creation":s);})
+      .catch(e=>{setSlotsError(e.message||String(e));setScreen(s=>s==="boot"?"creation":s);});
+  }
+  useEffect(()=>{refreshSlots();},[]);
+  // Migrazioni applicate a ogni caricamento (da cloud o da file)
+  function migrateLoaded(state){
+    const base=migrateWorldPool(state.atpWorld||{});
+    const migratedWorld=shiftNpcRanksForPlayer(base,state.player?.rank||500,state.player?.atpPoints||0);
+    return{...state,atpWorld:migratedWorld};
+  }
   function startNew(pd){
     const w=buildWorld();
     // Budget, età e punti ATP iniziali dal profilo scelto in CharCreation
@@ -6953,13 +7143,37 @@ function App(){
     const state={week:1,year:1,brackets:{},activeTour:null,tourRound:0,weekDone:false,staff:{},morale:50,atpWorld:w,sponsor:null,
       gameMode:pd.gameMode||"classic",
       player:{...pd,rank:startRank,atpPoints:startPts,money:budget,fatigue:0,age,wins:0,losses:0,titles:0,history:[],careerStats:{},careerStartRank:startRank,bestRankEver:startRank,currentZone:(NATS.find(n=>n.c===pd.nationality)?.z||"Europa"),homeZone:(NATS.find(n=>n.c===pd.nationality)?.z||"Europa"),investments:{}}};
-    saveL(state);setGs(state);setScreen("game");
+    // La partita parte solo dopo la scelta di slot e nome (SlotPickerModal)
+    setPendingNew({state,defaultName:pd.name||"La mia carriera"});
   }
-  function resume(){const s=loadL();if(s){const base=migrateWorldPool(s.atpWorld||{});const migratedWorld=shiftNpcRanksForPlayer(base,s.player?.rank||500,s.player?.atpPoints||0);const migrated={...s,atpWorld:migratedWorld};saveL(migrated);setGs(migrated);setScreen("game");}}
+  function loadSlot(slot){
+    if(busySlot)return;
+    setBusySlot(slot);
+    cloudLoadSave(slot).then(r=>{
+      if(!r){setBusySlot(null);refreshSlots();return;}
+      setCloudSlot(slot);setSaveName(r.name);setGs(migrateLoaded(r.payload));setScreen("game");
+    }).catch(e=>{setBusySlot(null);alert("Caricamento fallito: "+(e.message||e));});
+  }
+  function deleteSlot(slot){
+    cloudDeleteSave(slot)
+      .then(()=>setSlots(m=>{const c={...(m||{})};delete c[slot];return c;}))
+      .catch(e=>alert("Eliminazione fallita: "+(e.message||e)));
+  }
+  function handleImport(f){importSave(f,state=>{setPendingNew({state:migrateLoaded(state),defaultName:state.player?.name||"Carriera importata"});});}
+  async function confirmNewSlot(slot,name){
+    await cloudSaveGame(slot,name,pendingNew.state);
+    setCloudSlot(slot);setSaveName(name);setGs(pendingNew.state);setPendingNew(null);setScreen("game");
+  }
   if(screen==="boot")return <div style={{minHeight:"100vh",background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:18}}>🎾 Caricamento ATP Career...</div>;
-  function handleImport(f){importSave(f,state=>{const base=migrateWorldPool(state.atpWorld||{});const migratedWorld=shiftNpcRanksForPlayer(base,state.player?.rank||500,state.player?.atpPoints||0);const migrated={...state,atpWorld:migratedWorld};saveL(migrated);setGs(migrated);setHasSave(true);setScreen("game");});}
-  if(screen==="creation")return <CharCreation onStart={startNew} hasSave={hasSave} onResume={resume} onImport={handleImport}/>;
-  if(screen==="game"&&gs)return <GameScreen gs={gs}/>;
+  if(screen==="creation")return(
+    <>
+      <CharCreation onStart={startNew} onImport={handleImport} slots={slots} slotsError={slotsError}
+        busySlot={busySlot} onLoadSlot={loadSlot} onDeleteSlot={deleteSlot} onRetrySlots={refreshSlots}/>
+      {pendingNew&&<SlotPickerModal title="Dove vuoi salvare la carriera?" defaultName={pendingNew.defaultName}
+        onCancel={()=>setPendingNew(null)} onConfirm={confirmNewSlot}/>}
+    </>
+  );
+  if(screen==="game"&&gs)return <GameScreen gs={gs} cloudSlot={cloudSlot} cloudName={saveName}/>;
   return null;
 }
 
@@ -6981,8 +7195,10 @@ ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
       p.push("Babel non caricato da unpkg.com (probabile mancanza di connessione a internet).");
     if(manca(function(){ return !window.NPC_SYSTEM; }))
       p.push("File js/npc_system.js mancante o non caricato.");
-    if(manca(function(){ return typeof ATP400 === "undefined" || typeof SK === "undefined"; }))
+    if(manca(function(){ return typeof ATP400 === "undefined" || typeof STAFF_LEVELS === "undefined"; }))
       p.push("File js/game_data.js mancante o non caricato.");
+    if(manca(function(){ return typeof cloudListSaves === "undefined" || typeof cloudSaveGame === "undefined"; }))
+      p.push("File js/cloud_saves.js mancante o non caricato.");
     if(manca(function(){ return typeof buildWorld === "undefined" || typeof simWeek === "undefined"; }))
       p.push("File js/engine.js mancante o non caricato.");
     return p;
