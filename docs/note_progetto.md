@@ -418,6 +418,30 @@ MORALE — Sistema V3:
 
 [sess.1-47: vedi versione precedente note_progetto.txt]
 
+--- SESS.53 ---
+- DIAGNOSTICA DI AVVIO in index.html: dopo la riorganizzazione (sess.52) il gioco
+  dipende dalla cartella js/ accanto a index.html; se un file (o la CDN unpkg)
+  non si carica, la pagina restava nera senza alcun messaggio (console invisibile
+  su Safari iOS). Ora: (1) listener window "error" in <head> raccoglie errori di
+  caricamento/esecuzione in window.__bootErrors; (2) script classico in fondo al
+  body verifica React/ReactDOM/Babel, window.NPC_SYSTEM, game_data (ATP400/SK) ed
+  engine (buildWorld/simWeek) e in caso di problemi mostra un pannello con causa
+  e istruzioni; (3) watchdog 12s: se #root è ancora vuoto (errore nel blocco
+  Babel), mostra comunque il pannello. Nota TDZ: typeof su const/let globali di
+  uno script fallito a metà può lanciare → tutti i check sono in try/catch.
+  Verificato: gioco completo OK (http e file://), senza js/ → pannello, senza
+  CDN → pannello.
+
+--- SESS.52 ---
+- RIORGANIZZAZIONE REPOSITORY (Fasi A/B/C): documentazione in docs/ (.txt → .md,
+  nuovo architettura.md), salvataggi di esempio in saves/, tool Node in tools/.
+  Estratti da index.html i dati di gioco (js/game_data.js) e il motore
+  (js/engine.js); js/npc_system.js spostato da root. index.html conserva solo
+  CSS + UI React (JSX) + bootstrap; il JSX resta lì per il vincolo file://.
+  Ordine di caricamento: npc_system → game_data → engine → blocco Babel.
+  Babel CDN pinnato a @babel/standalone@7. UI di GameScreen riordinata in
+  sezioni con viste estratte in componenti.
+
 --- SESS.51 ---
 - REVISIONE MOBILITÀ CLASSIFICA NPC (vedi sezione dedicata + bug 68-72): fix drift seed annuale, rumore settimanale, declassamento newgen, ageBias MR, leak stato ritirati. Nuove meccaniche: youngGrowthRate, talentRealization, getEffectiveFloorPts, drift_mod/win_mod ora attivi, upgrade giovinezza per originali, tierFromRandom ricalibrata, Phase 1b (rinormalizzazione livelli), gate Leggenda su Phase 1. getDecayRate/getNPCDecayRate rimossi (morti). NPC_SYSTEM v1.1.0. Validato con harness Node su 10 anni (metriche vicine all'ATP reale).
 

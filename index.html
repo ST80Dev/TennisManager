@@ -4,6 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ATP Career Manager 🎾</title>
+<script>
+// Diagnostica di avvio, parte 1: raccoglie errori di caricamento ed
+// esecuzione degli script. Se il gioco non si monta, lo script in fondo
+// al body li mostra a schermo al posto della pagina nera (su Safari
+// iOS la console non è accessibile). Deve stare PRIMA di ogni <script src>.
+window.__bootErrors = [];
+window.addEventListener("error", function(e){
+  try{
+    if(e && e.target && e.target.tagName === "SCRIPT" && e.target.src){
+      window.__bootErrors.push("Impossibile caricare: " + e.target.src);
+    }else if(e && e.message){
+      var src = e.filename ? e.filename.split("/").slice(-2).join("/") + (e.lineno ? ":" + e.lineno : "") : "";
+      window.__bootErrors.push((src ? src + " — " : "") + e.message);
+    }
+  }catch(_){}
+}, true);
+</script>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
@@ -6947,6 +6964,70 @@ function App(){
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+<script>
+// Diagnostica di avvio, parte 2 (script classico, nessuna dipendenza):
+// verifica che CDN e file js/ siano stati caricati e che la UI si monti.
+// In caso contrario mostra un pannello con i problemi e come risolverli.
+(function(){
+  // typeof su un binding lessicale (const/let) di uno script fallito a metà
+  // può lanciare (TDZ): ogni controllo va quindi protetto da try/catch.
+  function manca(fn){ try{ return fn(); }catch(e){ return true; } }
+  function problemi(){
+    var p = [];
+    if(manca(function(){ return typeof React === "undefined" || typeof ReactDOM === "undefined"; }))
+      p.push("Librerie React non caricate da unpkg.com (probabile mancanza di connessione a internet).");
+    if(manca(function(){ return typeof Babel === "undefined"; }))
+      p.push("Babel non caricato da unpkg.com (probabile mancanza di connessione a internet).");
+    if(manca(function(){ return !window.NPC_SYSTEM; }))
+      p.push("File js/npc_system.js mancante o non caricato.");
+    if(manca(function(){ return typeof ATP400 === "undefined" || typeof SK === "undefined"; }))
+      p.push("File js/game_data.js mancante o non caricato.");
+    if(manca(function(){ return typeof buildWorld === "undefined" || typeof simWeek === "undefined"; }))
+      p.push("File js/engine.js mancante o non caricato.");
+    return p;
+  }
+  function mostra(lista){
+    var root = document.getElementById("root") || document.body;
+    var dettagli = (window.__bootErrors || []).slice(0, 8);
+    root.innerHTML =
+      '<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:#0f172a;color:#fff;">' +
+        '<div style="font-size:48px;margin-bottom:8px;">🎾</div>' +
+        '<h1 style="font-size:22px;margin-bottom:6px;text-align:center;">Il gioco non è riuscito ad avviarsi</h1>' +
+        '<div style="color:#94a3b8;font-size:14px;margin-bottom:18px;">Problemi rilevati:</div>' +
+        '<ul style="list-style:none;max-width:520px;width:100%;margin-bottom:20px;">' +
+          lista.map(function(m){ return '<li style="background:#1e293b;border:1px solid #ef4444;border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:14px;">⚠️ ' + m + '</li>'; }).join("") +
+        '</ul>' +
+        '<div style="max-width:520px;width:100%;background:#1e293b;border-radius:10px;padding:14px;font-size:13px;color:#cbd5e1;line-height:1.6;">' +
+          '<b style="color:#fff;">Come risolvere</b><br>' +
+          '1. Il gioco ora è diviso in più file: scarica/aggiorna <b>tutta</b> la cartella, non solo index.html. La cartella <b>js/</b> (npc_system.js, game_data.js, engine.js) deve stare accanto a index.html.<br>' +
+          '2. Se hai scaricato uno ZIP da GitHub, estrailo completamente prima di aprire index.html.<br>' +
+          '3. Verifica la connessione a internet (React e Babel arrivano da unpkg.com).' +
+        '</div>' +
+        (dettagli.length ? '<div style="max-width:520px;width:100%;margin-top:14px;font-size:11px;color:#64748b;font-family:monospace;word-break:break-all;">' + dettagli.map(function(d){ return "• " + d; }).join("<br>") + '</div>' : '') +
+      '</div>';
+  }
+  function esegui(){
+    var p = problemi();
+    if(p.length){
+      mostra(p);
+      // Babel potrebbe comunque eseguire il blocco UI dopo di noi e React
+      // toccare il root prima di andare in errore: ri-mostra il pannello.
+      setTimeout(function(){ mostra(problemi()); }, 1500);
+      return;
+    }
+    // File tutti presenti: se dopo 12s il root è ancora vuoto, l'errore è
+    // avvenuto compilando/eseguendo il blocco Babel (es. JSX corrotto).
+    setTimeout(function(){
+      var root = document.getElementById("root");
+      if(root && !root.firstChild){
+        mostra(["L'interfaccia non si è avviata (errore durante la compilazione o l'esecuzione della UI)."]);
+      }
+    }, 12000);
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", esegui);
+  else esegui();
+})();
 </script>
 </body>
 </html>
