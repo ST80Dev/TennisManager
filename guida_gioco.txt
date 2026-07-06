@@ -38,7 +38,9 @@ MODALITA' DI GIOCO:
   ⏳ Classica — Gli NPC invecchiano stagione dopo stagione e si ritirano
     quando raggiungono l'eta' limite. Il circuito si rinnova nel tempo:
     dopo anni potresti non trovare piu' Sinner o Alcaraz ai vertici.
-    La modalita' piu' realistica.
+    I giovani talenti emergono e scalano la classifica (i predestinati
+    esplodono tra i 18 e i 21 anni), i veterani calano progressivamente
+    dopo i 30 fino al ritiro. La modalita' piu' realistica.
 
   ⭐ Leggenda — Gli NPC rimangono per sempre ai livelli attuali.
     Eta' cristallizzata: nessun decay fisico, nessun ritiro.
