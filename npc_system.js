@@ -119,11 +119,36 @@
     return {win_mod,drift_mod,skip_prob,char};
   }
 
-  function getDecayRate(rank){
-    if(rank<=15)  return 0.9968;
-    if(rank<=50)  return 0.9972;
-    if(rank<=150) return 0.9978;
-    return 0.9982;
+  // getDecayRate RIMOSSO (sess.51): decay fisso superseded dalla MR verso
+  // personalLevel in simWeek Phase 1 — era codice morto mai chiamato.
+
+  // ── CRESCITA GIOVANI (sess.51) ────────────────────────────────────────
+  // Frazione ANNUA del gap (ceiling - personalLevel) recuperata da un giovane.
+  // È il motore principale del ricambio generazionale: un newgen Elite/Legend
+  // scala la classifica in 3-5 anni (traiettoria alla Sinner/Alcaraz),
+  // un Journeyman si assesta nelle retrovie. Applicata settimanalmente
+  // in simWeek come rate/51.
+  // Picco di crescita a 19-20 anni (traiettoria reale: esplosione a 18-20,
+  // non a 16-17 — un 17enne non deve entrare in top-5).
+  function youngGrowthRate(age){
+    if(age==null) return 0;
+    if(age<18) return 0.10;
+    if(age<19) return 0.20;
+    if(age<21) return 0.30;
+    if(age<23) return 0.20;
+    if(age<25) return 0.12;
+    if(age<27) return 0.06;
+    return 0;
+  }
+
+  // ── FLOOR EFFETTIVO PER ETÀ (sess.51) ────────────────────────────────
+  // Il floor di talento protegge la carriera SOLO fino ai 30 anni: dopo,
+  // sfuma esponenzialmente (×0.60 per anno oltre i 30) così i veterani
+  // possono davvero uscire dal top 20/50/100 prima del ritiro.
+  // Senza questo fade un Legend restava top-18 a vita (lock-in della vetta).
+  function getEffectiveFloorPts(floorPts, age){
+    if(age==null || age<=30) return floorPts;
+    return Math.max(5, floorPts*Math.pow(0.60, age-30));
   }
 
   // Cap guadagno settimanale in punti — bonus giovani più aggressivo (sess.50)
@@ -179,33 +204,61 @@
     const h=mix(id*5281+41453);
     return (h%100)<10; // 10%
   }
-  // Tier random pesato per NEWGEN — distribuzione più ambiziosa (sess.50):
-  // 3% Legend · 6% Elite · 11% Great · 15% VeryGood · 20% Good · 25% Solid · 20% Journeyman
+  // Tier random pesato per NEWGEN — ricalibrata (sess.51, prima 3%/6%/11%):
+  // con ~36 ritiri/anno la vecchia distribuzione produceva ~1 Legend e ~2 Elite
+  // OGNI anno → vetta affollata di predestinati e curva punti compressa.
+  // Ora: 1% Legend (~1 ogni 3 anni) · 3% Elite (~1/anno) · 7% Great ·
+  // 14% VeryGood · 22% Good · 28% Solid · 25% Journeyman
   function tierFromRandom(npcId){
     const id=parseIdInt(npcId);
     const h=mix(id*8291+55771);
     const r=(h%10000)/10000;
-    if(r<0.03) return "Legend";
-    if(r<0.09) return "Elite";
-    if(r<0.20) return "Great";
-    if(r<0.35) return "VeryGood";
-    if(r<0.55) return "Good";
-    if(r<0.80) return "Solid";
+    if(r<0.01) return "Legend";
+    if(r<0.04) return "Elite";
+    if(r<0.11) return "Great";
+    if(r<0.25) return "VeryGood";
+    if(r<0.47) return "Good";
+    if(r<0.75) return "Solid";
     return "Journeyman";
   }
+  // ── REALIZZAZIONE DEL TALENTO (sess.51) ───────────────────────────────
+  // Non tutti realizzano il pieno potenziale: la crescita giovanile punta a
+  // floor + r×(ceiling−floor) con r∈[0.45,1.0] personale. Durante un
+  // "breakthrough" il target sale al ceiling pieno → le fasi di carriera
+  // decidono CHI tra i talenti sfonda davvero.
+  function talentRealization(npcId){
+    const id=parseIdInt(npcId);
+    const h=mix(id*9433+77143);
+    return 0.45+((h%1000)/1000)*0.55;
+  }
   // API principale: restituisce {tier, ceilRank, floorRank}
-  // isNewgen=true → tier da random. Altrimenti → tier da initRank (+ hidden upgrade).
-  function getTalent(npcId, initRank, isNewgen){
+  // isNewgen=true → tier da random. Altrimenti → tier da initRank (+ upgrades).
+  // initAge (opzionale, sess.51): età al momento dell'ingresso nel world.
+  // Un ORIGINALE giovane a rank modesto ha upside reale (i 18enni a rank 250
+  // non sono journeyman a vita): upgrade probabilistico del tier per initAge.
+  function getTalent(npcId, initRank, isNewgen, initAge){
+    const order=["Journeyman","Solid","Good","VeryGood","Great","Elite","Legend"];
+    const up=(tier,steps)=>{
+      const idx=order.indexOf(tier);
+      return order[Math.min(order.length-1, Math.max(0,idx)+steps)];
+    };
     let tier;
     if(isNewgen){
       tier=tierFromRandom(npcId);
     } else {
       tier=tierFromInitRank(initRank);
-      if(hasHiddenTalent(npcId,initRank)){
-        // Upgrade di un tier: Solid→Good, Good→VeryGood, VeryGood→Great, ecc.
-        const order=["Journeyman","Solid","Good","VeryGood","Great","Elite","Legend"];
-        const idx=order.indexOf(tier);
-        if(idx>=0 && idx<order.length-1) tier=order[idx+1];
+      if(hasHiddenTalent(npcId,initRank)) tier=up(tier,1);
+      // Upgrade giovinezza (sess.51): initAge≤21 → 45% +1 tier (di cui 15% +2)
+      // · 22-24 → 25% +1 tier. Deterministico per id.
+      if(initAge!=null && initAge<=24 && initRank>20){
+        const h=mix(parseIdInt(npcId)*3907+66403);
+        const r=(h%1000)/1000;
+        if(initAge<=21){
+          if(r<0.15) tier=up(tier,2);
+          else if(r<0.45) tier=up(tier,1);
+        } else if(r<0.25){
+          tier=up(tier,1);
+        }
       }
     }
     const t=TALENT_TIERS[tier]||TALENT_TIERS.Journeyman;
@@ -310,10 +363,12 @@
     ARCHETYPES, FIXED_ARCHETYPE,
     getArchetype, calcFormMult,
     // Lifecycle
-    getRetireAge, getAgeParams, getGainCap, getDecayRate,
+    getRetireAge, getAgeParams, getGainCap,
+    youngGrowthRate, getEffectiveFloorPts,
     // Talent
     TALENT_TIERS,
     getTalent, hasHiddenTalent, tierFromInitRank, tierFromRandom,
+    talentRealization,
     // Career phase
     rollPhaseTransition, phaseDriftModifier,
     // Early retirement
@@ -325,7 +380,7 @@
     // Utility
     parseIdInt, mix,
     // Versione (per migrate save / debug)
-    VERSION: "1.0.0",
+    VERSION: "1.1.0",
   };
 
 })(typeof window!=="undefined"?window:globalThis);

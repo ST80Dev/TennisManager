@@ -1,7 +1,7 @@
 # ATP CAREER MANAGER — NOTE DI PROGETTO
-# Aggiornato: Aprile 2026 (sessioni 48-50)
+# Aggiornato: Luglio 2026 (sessioni 48-51)
 # Da allegare insieme ad index.html all'inizio di ogni nuova sessione
-# File progetto: index.html + npc_system.js (sess.50)
+# File progetto: index.html + npc_system.js (sess.51, NPC_SYSTEM v1.1.0)
 
 ═══════════════════════════════════════════════════════════
 PRASSI OPERATIVE — LEGGERE PRIMA DI TUTTO
@@ -187,7 +187,70 @@ SISTEMA NPC — PACCHETTO C (refactor sess.50, vedi npc_system.js):
     Bonus giovani: <21 ×3.0 · <24 ×2.0 · <27 ×1.3 (nuovo)
 
   MR: rank≤20: 0.050 · rank≤100: 0.035 · rank≤300: 0.045 · altri: 0.060
+    (sess.51: RIMOSSO ageBias sulla MR — rallentare la MR dei veterani li
+     teneva in alto più a lungo, effetto OPPOSTO all'intento)
   Pool fisso Phase 3b: NPC_FIXED_POOL = 206.347 (costante)
+
+SISTEMA NPC — REVISIONE MOBILITÀ CLASSIFICA (sess.51, npc_system v1.1.0):
+  Problema: classifica quasi congelata dopo anni (top10 identica al 100%
+  dopo 1 anno, 2 soli n.1 in 10 anni, nessun newgen sopra rank 23,
+  |Δrank| top50 ~5/anno). Diagnosi via harness Node che riusa il codice
+  reale di simWeek (vedi VALIDAZIONE sotto).
+
+  BUG RISOLTI (68-72, vedi sezione BUG):
+    68. driftSeed annuale costante · 69. rumore settimanale morto (sv(NaN))
+    70. newgen di talento declassati Journeyman · 71. ageBias MR inverso
+    72. leak npcForm/npcPersonalLevel dei ritirati
+
+  NUOVE MECCANICHE (npc_system.js):
+    youngGrowthRate(age): frazione ANNUA del gap verso il ceiling REALIZZATO
+      recuperata dai giovani (motore del ricambio generazionale):
+      <18: 0.10 · <19: 0.20 · <21: 0.30 (picco) · <23: 0.20 · <25: 0.12 · <27: 0.06
+      Applicata in simWeek come rate/51 a settimana.
+    talentRealization(id): r ∈ [0.45, 1.0] personale — la crescita punta a
+      floor + r×(ceil−floor), NON al ceiling pieno. In fase "breakthrough"
+      il target sale al ceiling pieno → le career phase decidono chi sfonda.
+    getEffectiveFloorPts(floor, age): il floor di talento sfuma ×0.60/anno
+      oltre i 30 anni → i veterani possono davvero uscire dal top 20/100
+      (prima un Legend restava top-18 a vita fino al ritiro).
+    drift_mod di getAgeParams ORA USATO (prima calcolato e ignorato):
+      moltiplica il personalLevel ogni settimana → declino progressivo
+      30+ (fino a -14/-34% l'anno a 35+), personalizzato dal char.
+    win_mod di getAgeParams ORA USATO in simNPCBracket/atpFinalsSimMatch:
+      giovani sovraperformano il rank nei tornei, veterani sottoperformano.
+    getTalent(id, initRank, isNewgen, initAge): upgrade giovinezza per
+      ORIGINALI giovani a rank modesto (initRank>20): initAge≤21 → 45% +1
+      tier (15% +2) · 22-24 → 25% +1. initAge stampato in buildWorld e
+      generateReplacementNPC (old save senza initAge → nessun upgrade, ok).
+    tierFromRandom RICALIBRATA: 1% Legend · 3% Elite · 7% Great · 14% VG ·
+      22% Good · 28% Solid · 25% Journeyman (era 3/6/11/15/20/25/20: con
+      ~38 ritiri/anno produceva 1 Legend e 2 Elite OGNI anno → vetta
+      affollata e curva punti compressa).
+    getDecayRate RIMOSSA (codice morto, superseded dalla MR di Phase 1).
+
+  PARAMETRI RITOCCATI (simWeek Phase 1):
+    driftPct annuale per archetipo: 0.10/0.13/0.15/0.19/0.25 (era 0.08-0.20)
+    biasedDrift = clamp(raw×0.7 + signBias×0.5) (era raw×0.5 — ampiezza piena)
+    rumore settimanale: ±0.6% (≤30) · ±1.0% (≤100) · ±1.4% (era 0.3/0.6/1.0)
+    Phase 1b NUOVA: rinormalizzazione settimanale dei personalLevel a
+      NPC_FIXED_POOL — la crescita giovani immette più livello del declino
+      veterani; senza rescale la curva punti si scolla da atpPtsForRank
+      (ordinale invariato, scala punti preservata per sponsor/UI).
+    MODALITÀ LEGGENDA: Phase 1 evolutiva GATED (niente drift annuale, niente
+      growth/decline settimanale, floor pieno) → livelli cristallizzati.
+      Verificato: top10 identica dopo 3 anni, età ferme.
+
+  VALIDAZIONE (harness 10 anni × 3 repliche, target = ATP reale):
+    top10 retention: y1 0.90 · y3 0.80 · y5 0.40 · y10 0.00
+    top100 retention: y1 0.79 · y3 0.50 · y5 0.27 · y10 0.04
+    n.1 distinti (settimanali) in 10 anni: ~5 · top10 distinti: ~36
+    breakout giovani (u22 rank 30-300, +60 pos in 3 anni): ~30%
+    declino 30+ top100 (−30 pos o ritiro in 3 anni): ~100%
+    miglior newgen dopo 10 anni: #1 · newgen in top50: ~48/50
+    ritiri: ~38/anno
+    Traiettoria tipo: newgen Elite entra 17enne rank ~300 → top10 a 19-20
+    → n.1 a 20-22 (stile Sinner/Alcaraz). Vecchi top declinano dai 28-30
+    ed escono dal top10 entro i 31-33.
 
 RANK COLLISION — FIX (sess.50):
   Bug: player.rank poteva coincidere con rank di un NPC esistente
@@ -308,6 +371,37 @@ BUG RISOLTI — EVITARE REGRESSIONI
     Fix: shiftNpcRanksForPlayer applicato dopo ogni aggiornamento world.
     getATPPlayer gestisce il gap al rank del giocatore ritornando NPC vicino.
 
+68. DRIFT ANNUALE CON SEED COSTANTE (sess.51): driftSeedB usava weekNum nel
+    seed, ma il drift scatta solo a isNewYear dove weekNum vale SEMPRE 1
+    → sv(id*3571+99) identico ogni anno: ogni NPC derivava della stessa
+    entità nella stessa direzione ogni anno, poi si bloccava sul
+    floor/ceiling. Causa principale della classifica congelata.
+    Fix: seed = sv(id*3571 + yearNum*7717 + 99).
+
+69. RUMORE SETTIMANALE MORTO (sess.51): noiseSeed=sv((p.id||rank)*week*...)
+    ma p.id è una STRINGA ("p42") → "p42"*week=NaN → sv(NaN)=0 SEMPRE
+    → il "rumore" era un drag costante -noisePct identico per tutti
+    (zero varianza, annullato dalla normalizzazione).
+    Fix: sv(parseIdInt(p.id)*week*7919+13).
+
+70. NEWGEN DI TALENTO DECLASSATI (sess.51): getNPCCareerBounds usava
+    isNewgen=initRank>=300, ma dalla sess.50 i newgen top partono a rank
+    180-330 → OGNI newgen Legend (180-250) e gli Elite sotto 300 venivano
+    riclassificati da tierFromInitRank come Journeyman (ceiling 180!).
+    Nessun newgen poteva sfondare — conflitto interno sess.50.
+    Fix: isNewgen = id inizia con "pR" (|| initRank>=300 per legacy).
+
+71. AGEBIAS SULLA MR CONTROPRODUCENTE (sess.51): ageBias negativo per i
+    veterani RALLENTAVA la convergenza verso il target più basso →
+    declino più LENTO, li teneva in alto più a lungo (opposto
+    dell'intento "veterani giù"). Rimosso: l'effetto età agisce ora sul
+    TARGET (drift_mod settimanale sul personalLevel).
+
+72. LEAK STATO NPC RITIRATI (sess.51): al ritiro venivano ripuliti solo
+    npcCareerPhase e npcYearsOutside150/250 — npcForm e npcPersonalLevel
+    restavano per sempre nel save e falsavano la rinormalizzazione livelli.
+    Fix: delete anche di npcForm/npcPersonalLevel in Phase 0.
+
 ═══════════════════════════════════════════════════════════
 DECISIONI DI DESIGN
 ═══════════════════════════════════════════════════════════
@@ -334,6 +428,16 @@ MODIFICHE — CRONOLOGIA RECENTE
 ═══════════════════════════════════════════════════════════
 
 [sess.1-47: vedi versione precedente note_progetto.txt]
+
+--- SESS.51 ---
+- REVISIONE MOBILITÀ CLASSIFICA NPC (vedi sezione dedicata + bug 68-72):
+  fix drift seed annuale, rumore settimanale, declassamento newgen,
+  ageBias MR, leak stato ritirati. Nuove meccaniche: youngGrowthRate,
+  talentRealization, getEffectiveFloorPts, drift_mod/win_mod ora attivi,
+  upgrade giovinezza per originali, tierFromRandom ricalibrata,
+  Phase 1b (rinormalizzazione livelli), gate Leggenda su Phase 1.
+  getDecayRate/getNPCDecayRate rimossi (morti). NPC_SYSTEM v1.1.0.
+  Validato con harness Node su 10 anni (metriche vicine all'ATP reale).
 
 --- SESS.48 ---
 - DrawScreen: sorteggio animato stile B con footer fisso
