@@ -504,9 +504,10 @@ Il gioco si salva automaticamente SUL CLOUD (Supabase) a ogni azione: servono
 quindi una connessione a internet e nessun altro accorgimento. Hai 5 slot di
 salvataggio, ognuno con un nome a tua scelta.
 
-- Schermata iniziale: la lista dei 5 slot mostra nome del salvataggio,
-  giocatore, età, posizione in classifica, anno/settimana e data.
-  Tocca uno slot per riprendere la partita, il cestino per eliminarlo.
+- Schermata iniziale: tocca "Carica Salvataggio" per aprire la lista dei
+  5 slot, con nome del salvataggio, giocatore, età, posizione in classifica,
+  anno/settimana e data. Tocca uno slot per riprendere la partita,
+  il cestino per eliminarlo.
 - Nuova carriera: dopo la creazione scegli lo slot e il nome del salvataggio.
   Se sovrascrivi uno slot occupato, il nome esistente viene mantenuto
   (puoi comunque cambiarlo prima di confermare).
@@ -516,7 +517,7 @@ salvataggio, ognuno con un nome a tua scelta.
 Backup e trasferimento manuale (facoltativo, senza cloud):
 ```
   Profilo → "Esporta file di backup" → scarica il file .json
-  Schermata iniziale o Profilo → "Importa file di backup"
+  Profilo → "Importa file di backup" (sovrascrive lo slot attivo)
 ```
 
 ## CONSIGLI PER INIZIARE

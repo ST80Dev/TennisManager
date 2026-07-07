@@ -429,9 +429,12 @@ MORALE — Sistema V3:
   player_name, player_age, player_rank, game_year, game_week, updated_at
   (trigger moddatetime). RLS con policy anon-all (pattern OrionEmpires).
 - UI: schermata iniziale con lista dei 5 slot (nome save + giocatore, età, N° rank,
-  anno/settimana, data) con carica/elimina; SlotPickerModal per scelta slot+nome
-  a nuova carriera, import file e "salva su altro slot". Sovrascrittura di uno
-  slot = nome mantenuto (precompilato, modificabile).
+  anno/settimana, data) con carica/elimina, a comparsa dietro il bottone
+  "Carica Salvataggio (n/5)"; SlotPickerModal per scelta slot+nome a nuova
+  carriera e "salva su altro slot". Sovrascrittura di uno slot = nome mantenuto
+  (precompilato, modificabile). Import file .json rimosso dalla schermata
+  iniziale (resta solo nel Profilo come backup); riquadri "stile di gioco"
+  compattati (icona a sinistra, riga singola).
 - AUTOSAVE: useEffect di GameScreen serializza in cloudPayloadRef e salva sullo
   slot attivo con debounce 1.5s; flush immediato su visibilitychange/pagehide
   (unica rete di sicurezza senza localStorage). cloudDisabledRef blocca i
